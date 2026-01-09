@@ -40,9 +40,9 @@ float humedadAire = 0.0;
 int humedadSueloRaw = 0;
 float humedadSueloPct = 0.0;
 
-// Calibración EC-5 (ajustar según tu sensor)
-#define EC5_SECO 800    // Valor ADC en aire seco (~844 medido)
-#define EC5_MOJADO 2500 // Valor ADC en agua/suelo saturado (ajustar después)
+// Constantes para cálculo VWC (Ecuación Mineral Soil: VWC = 0.00119 * mV - 0.400)
+const float VWC_SLOPE = 0.00119;
+const float VWC_OFFSET = 0.400;
 
 void setup() {
   Serial.begin(115200);
@@ -93,16 +93,25 @@ void loop() {
   
   // Leer sensor EC-5 (humedad suelo)
   humedadSueloRaw = analogRead(EC5_PIN);
-  // Convertir a porcentaje (0-100%)
-  humedadSueloPct = map(humedadSueloRaw, EC5_SECO, EC5_MOJADO, 0, 100);
-  humedadSueloPct = constrain(humedadSueloPct, 0, 100);
+  
+  // Calcular voltaje en mV (ADC 12-bit, Ref 3.3V)
+  float sensorVoltageMV = (humedadSueloRaw / 4095.0) * 3300.0;
+  
+  // Calcular VWC (Volumetric Water Content)
+  // Ecuación: VWC = 0.00119 * mV - 0.400
+  float vwc = (VWC_SLOPE * sensorVoltageMV) - VWC_OFFSET;
+  
+  // Convertir a porcentaje (0.25 -> 25%) y restringir límites
+  humedadSueloPct = vwc * 100.0;
+  if (humedadSueloPct < 0) humedadSueloPct = 0.0;
+  // Nota: VWC puede superar el 50% en agua pura, pero difícilmente en suelo.
   
   // Imprimir en Serial
   Serial.println("--- Lecturas ---");
   Serial.printf("Temp Suelo: %.1f C\n", tempSuelo);
   Serial.printf("Temp Aire:  %.1f C\n", tempAire);
   Serial.printf("Hum Aire:   %.1f %%\n", humedadAire);
-  Serial.printf("Hum Suelo:  %.1f %% (raw: %d)\n", humedadSueloPct, humedadSueloRaw);
+  Serial.printf("VWC Suelo:  %.1f %% (mV: %.0f, raw: %d)\n", humedadSueloPct, sensorVoltageMV, humedadSueloRaw);
   
   // Limpiar buffer del display
   display.clearBuffer();
@@ -141,7 +150,8 @@ void loop() {
   } else {
     strcpy(strTempSuelo, "T: Error");
   }
-  sprintf(strHumSuelo, "H: %.0f %%", humedadSueloPct);
+  // Mostrar VWC en lugar de %.0f %% genérico
+  sprintf(strHumSuelo, "V: %.1f %%", humedadSueloPct);
   
   display.drawStr(70, 36, strTempSuelo);
   display.drawStr(70, 48, strHumSuelo);
