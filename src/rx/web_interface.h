@@ -90,6 +90,27 @@ const char index_html[] PROGMEM = R"rawliteral(
                 </div>
             </div>
 
+            <!-- Data Log Card -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-violet-50 rounded-lg text-violet-600"><i class="fas fa-database text-xl"></i></div>
+                        <div>
+                            <h3 class="text-lg font-bold text-slate-700">Historial de Datos</h3>
+                            <p class="text-sm text-slate-400"><span id="logEntries">0</span> registros (<span id="logSize">0</span> KB)</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="/download.csv" class="bg-violet-600 text-white px-4 py-2 rounded font-semibold hover:bg-violet-700 transition shadow-sm flex items-center gap-2">
+                            <i class="fas fa-download"></i> Descargar CSV
+                        </a>
+                        <button onclick="clearLog()" class="bg-red-100 text-red-600 px-4 py-2 rounded font-semibold hover:bg-red-200 transition flex items-center gap-2">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Charts Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="bg-white p-4 rounded-xl shadow-md"><h3 class="text-slate-600 font-semibold mb-2">Temperatura Aire (°C)</h3><canvas id="cTempAir"></canvas></div>
@@ -282,6 +303,12 @@ const char index_html[] PROGMEM = R"rawliteral(
                 document.getElementById("tempSuelo").innerText = d.tempSuelo.toFixed(1);
                 document.getElementById("vwcSuelo").innerText = d.vwcSuelo.toFixed(1);
 
+                // Update Log Info
+                if(d.logSize !== undefined) {
+                    document.getElementById("logSize").innerText = (d.logSize / 1024).toFixed(1);
+                    document.getElementById("logEntries").innerText = d.logEntries || 0;
+                }
+
                 // Update Signal (Config Tab)
                 if(d.rssi) {
                     // 1. RSSI
@@ -360,6 +387,18 @@ const char index_html[] PROGMEM = R"rawliteral(
                     statusEl.innerText = "Error de conexión";
                     statusEl.className = "text-sm text-red-500 font-mono";
                 });
+        }
+
+        function clearLog() {
+            if(!confirm("¿Borrar todo el historial de datos?")) return;
+            fetch('/clear_log')
+                .then(r => r.text())
+                .then(t => {
+                    document.getElementById("logSize").innerText = "0";
+                    document.getElementById("logEntries").innerText = "0";
+                    alert("Historial borrado");
+                })
+                .catch(e => alert("Error al borrar"));
         }
     </script>
 </body>

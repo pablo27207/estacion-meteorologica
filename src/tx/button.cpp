@@ -37,7 +37,7 @@ void handleButton() {
                         editCursor = 0;
                     }
                 } else if (uiState == UI_EDIT) {
-                    if (editCursor == 4) {
+                    if (editCursor == 5) { // Exit row
                         uiState = UI_VIEW;
                     } else {
                         uiState = UI_POPUP;
@@ -52,8 +52,10 @@ void handleButton() {
                         currentBW = bwValues[popupSelection];
                         applyLoRaConfig();
                     } else if (editCursor == 2) {
-                        txInterval = timerValues[popupSelection];
+                        measureInterval = measureValues[popupSelection];
                     } else if (editCursor == 3) {
+                        txInterval = txValues[popupSelection];
+                    } else if (editCursor == 4) {
                         scrIndex = popupSelection;
                     }
                     uiState = UI_EDIT;
@@ -71,14 +73,15 @@ void handleButton() {
                     if (currentScreen > 3) currentScreen = 0;
                 } else if (uiState == UI_EDIT) {
                     editCursor++;
-                    if (editCursor > 4) editCursor = 0;
+                    if (editCursor > 5) editCursor = 0;
                 } else if (uiState == UI_POPUP) {
                     popupSelection++;
                     int maxOpts = 0;
-                    if (editCursor == 0) maxOpts = 6;
-                    else if (editCursor == 1) maxOpts = 3;
-                    else if (editCursor == 2) maxOpts = 5;
-                    else if (editCursor == 3) maxOpts = 5;
+                    if (editCursor == 0) maxOpts = 6;       // SF
+                    else if (editCursor == 1) maxOpts = 3;  // BW
+                    else if (editCursor == 2) maxOpts = 5;  // Measure
+                    else if (editCursor == 3) maxOpts = 6;  // TX
+                    else if (editCursor == 4) maxOpts = 5;  // Screen
                     if (popupSelection >= maxOpts) popupSelection = 0;
                 }
             }

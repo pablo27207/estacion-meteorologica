@@ -2,6 +2,8 @@
 #include "lora.h"
 #include "display.h"
 #include "web_interface.h"
+#include "data_logger.h"
+#include <LittleFS.h>
 
 // Web Server Instance
 AsyncWebServer server(80);
@@ -90,7 +92,9 @@ void webServerInit() {
             
             json += "\"sf\":" + String(currentSF) + ",";
             json += "\"bw\":" + String(currentBW) + ",";
-            json += "\"interval\":" + String(txInterval / 60000.0);
+            json += "\"interval\":" + String(txInterval / 60000.0) + ",";
+            json += "\"logSize\":" + String(getLogFileSize()) + ",";
+            json += "\"logEntries\":" + String(logEntryCount);
             json += "}";
             request->send(200, "application/json", json);
         });
@@ -113,6 +117,17 @@ void webServerInit() {
             } else {
                 request->send(400, "text/plain", "Faltan parametros");
             }
+        });
+        
+        // CSV Download endpoint
+        server.on("/download.csv", HTTP_GET, [](AsyncWebServerRequest *request) {
+            request->send(LittleFS, "/data.csv", "text/csv", true);
+        });
+        
+        // Clear log endpoint
+        server.on("/clear_log", HTTP_GET, [](AsyncWebServerRequest *request) {
+            clearLogFile();
+            request->send(200, "text/plain", "Log cleared");
         });
     } else {
         // --- AP MODE (Configuration) ---

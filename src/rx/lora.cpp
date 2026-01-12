@@ -1,4 +1,5 @@
 #include "lora.h"
+#include "data_logger.h"
 #include <SPI.h>
 
 // Radio Instance
@@ -91,6 +92,9 @@ bool loraProcessReceive() {
         
         // Sync State from TX
         txInterval = lastData.interval;
+        
+        // Log to LittleFS
+        logReceivedData(lastData, lastRSSI, lastSNR);
         
         return true;
     } else {

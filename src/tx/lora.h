@@ -11,7 +11,8 @@ extern SX1262 radio;
 // Configuration State
 extern int currentSF;
 extern float currentBW;
-extern unsigned long txInterval;
+extern unsigned long measureInterval;  // Interval between sensor readings (SD)
+extern unsigned long txInterval;       // Interval between LoRa transmissions
 
 // Transmission State
 extern int lastTxState;

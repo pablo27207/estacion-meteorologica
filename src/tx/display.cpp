@@ -23,8 +23,13 @@ const int sfValues[] = {7, 8, 9, 10, 11, 12};
 const char* sfLabels[] = {"SF7", "SF8", "SF9", "SF10", "SF11", "SF12"};
 const float bwValues[] = {125.0, 250.0, 500.0};
 const char* bwLabels[] = {"BW125", "BW250", "BW500"};
-const unsigned long timerValues[] = {5000, 10000, 30000, 60000, 120000};
-const char* timerLabels[] = {"5s", "10s", "30s", "1m", "2m"};
+// Measure Interval (SD logging)
+const unsigned long measureValues[] = {10000, 60000, 300000, 600000, 1800000};
+const char* measureLabels[] = {"10s", "1m", "5m", "10m", "30m"};
+// TX Interval (LoRa)
+const unsigned long txValues[] = {10000, 60000, 600000, 1800000, 3600000, 10800000};
+const char* txLabels[] = {"10s", "1m", "10m", "30m", "1h", "3h"};
+// Screen Timeout
 const unsigned long scrValues[] = {0, 60000, 900000, 1800000, 3600000};
 const char* scrLabels[] = {"ON", "1m", "15m", "30m", "1h"};
 
@@ -114,30 +119,40 @@ void drawConfig() {
     if (uiState == UI_VIEW) display.drawStr(0, 10, "4. CONFIGURACION");
     else display.drawStr(0, 10, "4. CONFIG (EDIT)");
     
-    char buf[32]; int yStart = 24; int ySpace = 10;
+    char buf[32]; int yStart = 22; int ySpace = 8;
     auto drawLine = [&](int idx, const char* label, const char* valStr) {
         if (uiState != UI_VIEW && editCursor == idx) display.drawStr(0, yStart + (idx*ySpace), ">");
-        display.drawStr(10, yStart + (idx*ySpace), label); 
-        display.drawStr(50, yStart + (idx*ySpace), valStr);
+        display.drawStr(8, yStart + (idx*ySpace), label); 
+        display.drawStr(40, yStart + (idx*ySpace), valStr);
     };
     
     sprintf(buf, "SF%d", currentSF); drawLine(0, "SF:", buf);
     sprintf(buf, "%.0f", currentBW); drawLine(1, "BW:", buf);
-    if (txInterval >= 60000) sprintf(buf, "%lu m", txInterval/60000); 
-    else sprintf(buf, "%lu s", txInterval/1000); 
-    drawLine(2, "Int:", buf);
-    drawLine(3, "Scr:", scrLabels[scrIndex]);
+    
+    // Measure Interval
+    if (measureInterval >= 60000) sprintf(buf, "%lum", measureInterval/60000);
+    else sprintf(buf, "%lus", measureInterval/1000);
+    drawLine(2, "Med:", buf);
+    
+    // TX Interval
+    if (txInterval >= 3600000) sprintf(buf, "%luh", txInterval/3600000);
+    else if (txInterval >= 60000) sprintf(buf, "%lum", txInterval/60000);
+    else sprintf(buf, "%lus", txInterval/1000);
+    drawLine(3, "TX:", buf);
+    
+    drawLine(4, "Scr:", scrLabels[scrIndex]);
     
     if (uiState != UI_VIEW) { 
-        if (editCursor == 4) display.drawStr(0, yStart + (4*ySpace), "> SALIR"); 
-        else display.drawStr(10, yStart + (4*ySpace), "SALIR"); 
+        if (editCursor == 5) display.drawStr(0, yStart + (5*ySpace), "> SALIR"); 
+        else display.drawStr(8, yStart + (5*ySpace), "SALIR"); 
     }
     
     if (uiState == UI_POPUP) {
         if (editCursor == 0) drawPopup("Set SF", sfLabels, 6, popupSelection);
         else if (editCursor == 1) drawPopup("Set BW", bwLabels, 3, popupSelection);
-        else if (editCursor == 2) drawPopup("Set Time", timerLabels, 5, popupSelection);
-        else if (editCursor == 3) drawPopup("Set Screen", scrLabels, 5, popupSelection);
+        else if (editCursor == 2) drawPopup("Medicion", measureLabels, 5, popupSelection);
+        else if (editCursor == 3) drawPopup("Transmision", txLabels, 6, popupSelection);
+        else if (editCursor == 4) drawPopup("Pantalla", scrLabels, 5, popupSelection);
     } else if (uiState == UI_VIEW) {
         display.setFont(u8g2_font_5x7_tr); display.drawStr(0, 63, "Largo: Editar");
     }

@@ -22,6 +22,7 @@
 MeteorDataPacket currentData;
 
 // Timing
+unsigned long lastMeasureTime = 0;
 unsigned long lastTxTime = 0;
 
 void setup() {
@@ -56,21 +57,33 @@ void loop() {
     // 2. Check Screen Timeout
     checkScreenTimeout();
     
-    // 3. Transmit Cycle
-    if (millis() - lastTxTime > txInterval || lastTxTime == 0) {
-        // Read Sensors
+    // 3. Measurement Cycle (SD logging)
+    if (millis() - lastMeasureTime > measureInterval || lastMeasureTime == 0) {
         readSensors(currentData);
         currentData.packetId = packetCounter;
         currentData.interval = txInterval;
+        
+        // Log to SD
+        logToSD(currentData);
+        lastMeasureTime = millis();
+        
+        Serial.printf("Measured: T=%.1f H=%.1f\n", currentData.tempAire, currentData.humAire);
+    }
+    
+    // 4. Transmission Cycle (LoRa)
+    if (millis() - lastTxTime > txInterval || lastTxTime == 0) {
+        // Ensure we have fresh data
+        if (lastMeasureTime == 0 || millis() - lastMeasureTime > measureInterval) {
+            readSensors(currentData);
+            currentData.packetId = packetCounter;
+            currentData.interval = txInterval;
+        }
         
         // Transmit
         int state = loraTransmit(currentData);
         lastTxTime = millis();
         
         if (state == RADIOLIB_ERR_NONE) {
-            // Log to SD
-            logToSD(currentData);
-            
             // Listen for Remote Commands (2 second window)
             loraStartReceive();
             unsigned long rxStart = millis();
@@ -114,6 +127,6 @@ void loop() {
         }
     }
     
-    // 4. Render Display
+    // 5. Render Display
     renderScreen(currentData, lastTxTime, txInterval);
 }

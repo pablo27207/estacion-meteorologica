@@ -27,8 +27,10 @@ extern const int sfValues[];
 extern const char* sfLabels[];
 extern const float bwValues[];
 extern const char* bwLabels[];
-extern const unsigned long timerValues[];
-extern const char* timerLabels[];
+extern const unsigned long measureValues[];  // Measure interval options
+extern const char* measureLabels[];
+extern const unsigned long txValues[];       // TX interval options
+extern const char* txLabels[];
 extern const unsigned long scrValues[];
 extern const char* scrLabels[];
 

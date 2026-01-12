@@ -7,7 +7,8 @@ SX1262 radio = new Module(RADIO_NSS, RADIO_DIO_1, RADIO_RST, RADIO_BUSY);
 // Configuration State
 int currentSF = LORA_SF;
 float currentBW = LORA_BW;
-unsigned long txInterval = 10000;
+unsigned long measureInterval = 10000;   // Default 10s for testing (production: 600000 = 10min)
+unsigned long txInterval = 10000;        // Default 10s for testing (production: 3600000 = 1hr)
 
 // Transmission State
 int lastTxState = 0;
