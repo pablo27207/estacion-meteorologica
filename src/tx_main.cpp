@@ -4,9 +4,19 @@
 #include <DHT.h>
 #include <U8g2lib.h>
 #include <RadioLib.h>
+#include "FS.h"
+#include "SD.h"
+#include "SPI.h"
 #include "shared_config.h"
 
-// --- Definiciones de Sensores (Copiado de main.cpp original) ---
+// --- SD Card Pins ---
+#define SD_SCK  48
+#define SD_MISO 33
+#define SD_MOSI 47
+#define SD_CS   26
+
+SPIClass sdSPI(HSPI); // Secondary SPI for SD
+
 // Pin del sensor DS18B20 (temperatura de suelo)
 #define ONE_WIRE_BUS 7
 
@@ -33,6 +43,13 @@ SX1262 radio = new Module(RADIO_NSS, RADIO_DIO_1, RADIO_RST, RADIO_BUSY);
 // Variables de datos
 MeteorDataPacket currentData;
 unsigned long packetCounter = 0;
+
+// SD State
+bool sdConnected = false;
+uint64_t sdTotalSpace = 0;
+uint64_t sdUsedSpace = 0;
+unsigned long sdWriteCount = 0;
+String sdStatusMsg = "No Card";
 
 // Flag de Interrupcion
 volatile bool operationDone = false;
@@ -67,7 +84,32 @@ void setup() {
   sensorSuelo.begin();
   sensorAire.begin();
   
-  // 4. LoRa Init
+  sensorAire.begin();
+
+  // 4. SD Init
+  sdSPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
+  if(!SD.begin(SD_CS, sdSPI)) {
+      Serial.println("SD Mount Failed");
+      sdStatusMsg = "Mount Fail";
+      sdConnected = false;
+  } else {
+      Serial.println("SD Mounted");
+      sdStatusMsg = "Ready";
+      sdConnected = true;
+      sdTotalSpace = SD.totalBytes() / (1024 * 1024);
+      sdUsedSpace = SD.usedBytes() / (1024 * 1024);
+      
+      // Init Headers if needed
+      if(!SD.exists("/data.csv")) {
+          File file = SD.open("/data.csv", FILE_WRITE);
+          if(file){
+              file.println("timestamp,packetId,tempAir,humAir,tempGnd,vwcGnd");
+              file.close();
+          }
+      }
+  }
+  
+  // 5. LoRa Init
   Serial.print(F("[SX1262] Initializing ... "));
   SPI.begin(RADIO_SCLK, RADIO_MISO, RADIO_MOSI, RADIO_NSS);
   
@@ -129,6 +171,29 @@ bool longPressHandled = false;
 int lastTxState = 0;
 unsigned long timeOfLastTx = 0;
 
+// --- SD LOGGING ---
+void logToSD() {
+    if(!sdConnected) return;
+    
+    File file = SD.open("/data.csv", FILE_APPEND);
+    if(!file) {
+        Serial.println("SD Write Fail");
+        sdStatusMsg = "Write Err";
+        return;
+    }
+    
+    // CSV Format: time(ms), id, tA, hA, tG, vwc
+    String line = String(millis()) + "," + String(currentData.packetId) + "," + 
+                  String(currentData.tempAire) + "," + String(currentData.humAire) + "," + 
+                  String(currentData.tempSuelo) + "," + String(currentData.vwcSuelo);
+                  
+    file.println(line);
+    file.close();
+    sdWriteCount++;
+    sdStatusMsg = "Logging...";
+    Serial.println("SD Log OK");
+}
+
 // --- FUNCIONES AUXILIARES ---
 
 void applyLoRaConfig() {
@@ -166,7 +231,7 @@ void handleButton() {
         longPressHandled = true;
         
         if (uiState == UI_VIEW) {
-           if (currentScreen == 2) {
+           if (currentScreen == 3) {
              uiState = UI_EDIT;
              editCursor = 0;
            }
@@ -199,7 +264,7 @@ void handleButton() {
         lastInteraction = millis();
         if (uiState == UI_VIEW) {
            currentScreen++;
-           if (currentScreen > 2) currentScreen = 0;
+           if (currentScreen > 3) currentScreen = 0;
         } else if (uiState == UI_EDIT) {
            editCursor++;
            if (editCursor > 4) editCursor = 0;
@@ -243,6 +308,25 @@ void drawStatus() {
   sprintf(buf, "Ago: %lu s", sAgo); display.drawStr(0, 50, buf);
   
   if (operationDone) display.drawStr(80, 25, "RX CMD!");
+}
+
+void drawSDStatus() {
+  display.setFont(u8g2_font_6x10_tr);
+  display.drawStr(0, 10, "3. ESTADO SD");
+  
+  char buf[32];
+  sprintf(buf, "Status: %s", sdStatusMsg.c_str());
+  display.drawStr(0, 25, buf);
+  
+  if(sdConnected) {
+      sprintf(buf, "Size: %llu MB", sdTotalSpace);
+      display.drawStr(0, 38, buf);
+      
+      sprintf(buf, "Writes: %lu", sdWriteCount);
+      display.drawStr(0, 50, buf);
+  } else {
+      display.drawStr(0, 38, "Check Cable");
+  }
 }
 
 void drawPopup(const char* title, const char* opts[], int count, int sel) {
@@ -311,8 +395,9 @@ void loop() {
     
     if (state == RADIOLIB_ERR_NONE) {
        packetCounter++;
-       // 3. Ventana de Escucha (Remote Config)
-       // Escuchar por 2 segundos en busca de comandos
+       
+       // 3. Log & Listen
+       logToSD();
        radio.startReceive();
        unsigned long rxStart = millis();
        bool cmdReceived = false;
@@ -364,7 +449,8 @@ void loop() {
     switch(currentScreen) {
       case 0: drawSensors(); break;
       case 1: drawStatus(); break;
-      case 2: drawConfig(); break;
+      case 2: drawSDStatus(); break;
+      case 3: drawConfig(); break;
     }
     if(uiState != UI_POPUP) {
       int prog = map(millis() - lastTxTime, 0, txInterval, 0, 128);
