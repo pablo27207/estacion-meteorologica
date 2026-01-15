@@ -3,7 +3,20 @@
 # Multi-stage build para imagen optimizada
 # ============================================
 
-# Stage 1: Dependencies
+# Stage 1: Build CSS with Tailwind
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY package.json ./
+RUN npm install
+
+COPY tailwind.config.js ./
+COPY public ./public
+
+# Build Tailwind CSS
+RUN npm run build:css
+
+# Stage 2: Dependencies (production only)
 FROM node:20-alpine AS deps
 WORKDIR /app
 
@@ -13,7 +26,7 @@ RUN apk add --no-cache python3 make g++
 COPY package.json ./
 RUN npm install --omit=dev
 
-# Stage 2: Production
+# Stage 3: Production
 FROM node:20-alpine AS runner
 WORKDIR /app
 
@@ -23,7 +36,12 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copiar dependencias compiladas
 COPY --from=deps /app/node_modules ./node_modules
+
+# Copiar código fuente
 COPY . .
+
+# Copiar CSS compilado desde builder
+COPY --from=builder /app/public/css/tailwind.css ./public/css/tailwind.css
 
 # Crear directorios necesarios con permisos correctos
 RUN mkdir -p /app/data && \

@@ -34,6 +34,56 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Form handlers
     document.getElementById('add-station-form').addEventListener('submit', handleAddStation);
+
+    // Station selector change handler
+    document.getElementById('station-selector').addEventListener('change', function () {
+        selectStation(this.value);
+    });
+
+    // Event delegation for all data-action elements
+    document.body.addEventListener('click', function (e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch (action) {
+            case 'showView':
+                showView(target.dataset.view);
+                break;
+            case 'toggleSidebar':
+                toggleSidebar();
+                break;
+            case 'refreshData':
+                refreshData();
+                break;
+            case 'showAddStationModal':
+                showAddStationModal();
+                break;
+            case 'closeModal':
+                closeModal(target.dataset.modal);
+                break;
+            case 'loadComparison':
+                loadComparison();
+                break;
+            case 'refreshAlerts':
+                refreshAlerts();
+                break;
+            case 'copyApiKey':
+                copyApiKey();
+                break;
+            case 'saveStationConfig':
+                saveStationConfig(target.dataset.stationId);
+                break;
+            case 'acknowledgeAlert':
+                acknowledgeAlert(target.dataset.alertId);
+                break;
+            case 'selectStationSettings':
+                selectStation(target.dataset.stationId);
+                showView('settings');
+                break;
+        }
+    });
 });
 
 /**
@@ -339,17 +389,17 @@ async function loadStationConfig(stationId) {
                     <div>
                         <label class="block text-sm font-semibold text-slate-600 mb-1">Spreading Factor</label>
                         <select id="cfg-sf" class="w-full border rounded-lg px-3 py-2">
-                            ${[7,8,9,10,11,12].map(sf =>
-                                `<option value="${sf}" ${station.config_sf === sf ? 'selected' : ''}>SF${sf}</option>`
-                            ).join('')}
+                            ${[7, 8, 9, 10, 11, 12].map(sf =>
+            `<option value="${sf}" ${station.config_sf === sf ? 'selected' : ''}>SF${sf}</option>`
+        ).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-slate-600 mb-1">Bandwidth</label>
                         <select id="cfg-bw" class="w-full border rounded-lg px-3 py-2">
                             ${[125, 250, 500].map(bw =>
-                                `<option value="${bw}" ${station.config_bw === bw ? 'selected' : ''}>${bw} kHz</option>`
-                            ).join('')}
+            `<option value="${bw}" ${station.config_bw === bw ? 'selected' : ''}>${bw} kHz</option>`
+        ).join('')}
                         </select>
                     </div>
                     <div>
@@ -359,7 +409,7 @@ async function loadStationConfig(stationId) {
                     </div>
                 </div>
                 <div class="flex gap-3 pt-4">
-                    <button onclick="saveStationConfig('${stationId}')"
+                    <button data-action="saveStationConfig" data-station-id="${stationId}"
                         class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                         Guardar Configuración
                     </button>
@@ -450,7 +500,7 @@ async function refreshAlerts() {
                         <p class="text-sm text-slate-400">${alert.station_name} - ${new Date(alert.created_at).toLocaleString()}</p>
                     </div>
                 </div>
-                <button onclick="acknowledgeAlert(${alert.id})" class="text-slate-400 hover:text-slate-600">
+                <button data-action="acknowledgeAlert" data-alert-id="${alert.id}" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-check"></i>
                 </button>
             `;
@@ -610,7 +660,7 @@ async function loadStationsList() {
                         </div>
                     </div>
                     <div class="flex items-center gap-3">
-                        <button onclick="selectStation('${station.id}'); showView('settings')"
+                        <button data-action="selectStationSettings" data-station-id="${station.id}"
                             class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 transition">
                             <i class="fas fa-cog"></i>
                         </button>

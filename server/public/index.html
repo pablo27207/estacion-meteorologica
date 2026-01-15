@@ -4,12 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIPIS - Estaciones Meteorológicas</title>
-    <!-- Base path para path-based routing (ej: /weather/) -->
-    <script>
-        // Detectar base path automáticamente
-        window.BASE_PATH = window.location.pathname.replace(/\/[^\/]*$/, '') || '';
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Base path for path-based routing (e.g., /weather/) -->
+    <base href="/weather/">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <!-- Compiled Tailwind CSS -->
+    <link rel="stylesheet" href="css/tailwind.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -33,32 +32,32 @@
         <nav class="p-4">
             <ul class="space-y-2">
                 <li>
-                    <a href="javascript:void(0)" onclick="showView('dashboard')" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="javascript:void(0)" data-action="showView" data-view="dashboard" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-tachometer-alt w-5"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" onclick="showView('stations')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="javascript:void(0)" data-action="showView" data-view="stations" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-broadcast-tower w-5"></i>
                         <span>Estaciones</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" onclick="showView('alerts')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="javascript:void(0)" data-action="showView" data-view="alerts" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-bell w-5"></i>
                         <span>Alertas</span>
                         <span id="alert-badge" class="ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full hidden">0</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" onclick="showView('compare')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="javascript:void(0)" data-action="showView" data-view="compare" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-chart-bar w-5"></i>
                         <span>Comparar</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" onclick="showView('settings')" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="javascript:void(0)" data-action="showView" data-view="settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-cog w-5"></i>
                         <span>Configuración</span>
                     </a>
@@ -69,7 +68,7 @@
         <!-- Station selector -->
         <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
             <label class="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Estación Activa</label>
-            <select id="station-selector" onchange="selectStation(this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <select id="station-selector" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 <option value="">Todas las estaciones</option>
             </select>
         </div>
@@ -77,7 +76,7 @@
 
     <!-- Mobile header -->
     <header class="md:hidden fixed top-0 left-0 right-0 bg-slate-900 text-white p-4 z-40 flex items-center justify-between">
-        <button onclick="toggleSidebar()" class="text-xl">
+        <button data-action="toggleSidebar" class="text-xl">
             <i class="fas fa-bars"></i>
         </button>
         <h1 class="font-bold">GIPIS Weather</h1>
@@ -100,7 +99,7 @@
                         <span id="connection-indicator" class="w-3 h-3 rounded-full bg-gray-400"></span>
                         <span id="connection-text" class="text-slate-500">Conectando...</span>
                     </div>
-                    <button onclick="refreshData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <button data-action="refreshData" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
                         <i class="fas fa-sync-alt"></i>
                         <span class="hidden md:inline">Actualizar</span>
                     </button>
@@ -200,7 +199,7 @@
         <section id="view-stations" class="view hidden">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-slate-800">Estaciones</h2>
-                <button onclick="showAddStationModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                <button data-action="showAddStationModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
                     <i class="fas fa-plus"></i>
                     Nueva Estación
                 </button>
@@ -215,7 +214,7 @@
         <section id="view-alerts" class="view hidden">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-slate-800">Alertas</h2>
-                <button onclick="refreshAlerts()" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">
+                <button data-action="refreshAlerts" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
@@ -255,7 +254,7 @@
                         </select>
                     </div>
                 </div>
-                <button onclick="loadComparison()" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                <button data-action="loadComparison" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                     Comparar
                 </button>
             </div>
@@ -285,7 +284,7 @@
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold text-slate-800">Nueva Estación</h3>
-                <button onclick="closeModal('modal-add-station')" class="text-slate-400 hover:text-slate-600">
+                <button data-action="closeModal" data-modal="modal-add-station" class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -315,7 +314,7 @@
                 </div>
 
                 <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeModal('modal-add-station')" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 transition">
+                    <button type="button" data-action="closeModal" data-modal="modal-add-station" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 transition">
                         Cancelar
                     </button>
                     <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
@@ -329,7 +328,7 @@
                 <p class="text-sm text-green-800 font-semibold mb-2">Estación creada exitosamente</p>
                 <p class="text-xs text-green-700 mb-2">Guarde este API Key, no se mostrará de nuevo:</p>
                 <code id="new-api-key" class="block bg-white p-2 rounded text-xs break-all border"></code>
-                <button onclick="copyApiKey()" class="mt-2 text-sm text-blue-600 hover:underline">
+                <button data-action="copyApiKey" class="mt-2 text-sm text-blue-600 hover:underline">
                     <i class="fas fa-copy"></i> Copiar
                 </button>
             </div>
