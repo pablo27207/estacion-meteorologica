@@ -1,0 +1,93 @@
+# ============================================
+# GIPIS Weather Station Server
+# Docker Compose con integración Traefik
+# ============================================
+#
+# Este compose se conecta a la red traefik-public
+# existente en tu infraestructura.
+#
+# Uso:
+#   docker compose up -d
+#   docker compose logs -f
+#
+# ============================================
+
+version: '3.8'
+
+services:
+  # ============================================
+  # Weather Station Server - Node.js/Express
+  # ============================================
+  weather-server:
+    build: .
+    container_name: gipis-weather
+    restart: unless-stopped
+
+    # Volúmenes persistentes
+    volumes:
+      # Base de datos SQLite
+      - weather-data:/app/data
+      # Logs (opcional)
+      # - ./logs:/app/logs
+
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Timezone para timestamps correctos
+      - TZ=America/Argentina/Buenos_Aires
+
+    # No exponer puerto directamente, solo via Traefik
+    expose:
+      - "3000"
+
+    # Conectar a la red de Traefik
+    networks:
+      - traefik-public
+
+    # Labels de Traefik para routing
+    labels:
+      - "traefik.enable=true"
+
+      # Router HTTPS principal
+      - "traefik.http.routers.weather.rule=Host(`${WEATHER_DOMAIN:-weather.gipis.unp.edu.ar}`)"
+      - "traefik.http.routers.weather.entrypoints=websecure"
+      - "traefik.http.routers.weather.tls=true"
+
+      # Servicio
+      - "traefik.http.services.weather.loadbalancer.server.port=3000"
+
+      # Middlewares opcionales
+      # Rate limiting para API
+      - "traefik.http.middlewares.weather-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.weather-ratelimit.ratelimit.burst=50"
+
+      # Headers de seguridad adicionales
+      - "traefik.http.middlewares.weather-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.weather-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.weather-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.weather-headers.headers.contentTypeNosniff=true"
+
+      # Aplicar middlewares al router
+      - "traefik.http.routers.weather.middlewares=weather-ratelimit,weather-headers"
+
+    # Healthcheck
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# ============================================
+# Volúmenes persistentes
+# ============================================
+volumes:
+  weather-data:
+    name: gipis-weather-data
+
+# ============================================
+# Red externa (creada por el compose principal)
+# ============================================
+networks:
+  traefik-public:
+    external: true
