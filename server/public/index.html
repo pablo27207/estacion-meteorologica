@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,9 +15,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/app.css">
 </head>
+
 <body class="bg-slate-100 text-slate-800 font-sans">
     <!-- Sidebar -->
-    <aside id="sidebar" class="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 transition-transform z-50">
+    <aside id="sidebar"
+        class="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 transition-transform z-50">
         <div class="p-6 border-b border-slate-700">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -32,32 +35,38 @@
         <nav class="p-4">
             <ul class="space-y-2">
                 <li>
-                    <a href="javascript:void(0)" data-action="showView" data-view="dashboard" class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="#" data-action="showView" data-view="dashboard"
+                        class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-tachometer-alt w-5"></i>
                         <span>Dashboard</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" data-action="showView" data-view="stations" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="#" data-action="showView" data-view="stations"
+                        class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-broadcast-tower w-5"></i>
                         <span>Estaciones</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" data-action="showView" data-view="alerts" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="#" data-action="showView" data-view="alerts"
+                        class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-bell w-5"></i>
                         <span>Alertas</span>
-                        <span id="alert-badge" class="ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                        <span id="alert-badge"
+                            class="ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full hidden">0</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" data-action="showView" data-view="compare" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="#" data-action="showView" data-view="compare"
+                        class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-chart-bar w-5"></i>
                         <span>Comparar</span>
                     </a>
                 </li>
                 <li>
-                    <a href="javascript:void(0)" data-action="showView" data-view="settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                    <a href="#" data-action="showView" data-view="settings"
+                        class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-cog w-5"></i>
                         <span>Configuración</span>
                     </a>
@@ -68,14 +77,16 @@
         <!-- Station selector -->
         <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
             <label class="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Estación Activa</label>
-            <select id="station-selector" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+            <select id="station-selector"
+                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
                 <option value="">Todas las estaciones</option>
             </select>
         </div>
     </aside>
 
     <!-- Mobile header -->
-    <header class="md:hidden fixed top-0 left-0 right-0 bg-slate-900 text-white p-4 z-40 flex items-center justify-between">
+    <header
+        class="md:hidden fixed top-0 left-0 right-0 bg-slate-900 text-white p-4 z-40 flex items-center justify-between">
         <button data-action="toggleSidebar" class="text-xl">
             <i class="fas fa-bars"></i>
         </button>
@@ -99,7 +110,8 @@
                         <span id="connection-indicator" class="w-3 h-3 rounded-full bg-gray-400"></span>
                         <span id="connection-text" class="text-slate-500">Conectando...</span>
                     </div>
-                    <button data-action="refreshData" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                    <button data-action="refreshData"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
                         <i class="fas fa-sync-alt"></i>
                         <span class="hidden md:inline">Actualizar</span>
                     </button>
@@ -162,7 +174,8 @@
                                 <span class="text-sm text-slate-400 font-normal">%</span>
                             </p>
                         </div>
-                        <div class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                        <div
+                            class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
                             <i class="fas fa-seedling text-xl"></i>
                         </div>
                     </div>
@@ -199,7 +212,8 @@
         <section id="view-stations" class="view hidden">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-slate-800">Estaciones</h2>
-                <button data-action="showAddStationModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
+                <button data-action="showAddStationModal"
+                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
                     <i class="fas fa-plus"></i>
                     Nueva Estación
                 </button>
@@ -214,7 +228,8 @@
         <section id="view-alerts" class="view hidden">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-slate-800">Alertas</h2>
-                <button data-action="refreshAlerts" class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">
+                <button data-action="refreshAlerts"
+                    class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">
                     <i class="fas fa-sync-alt"></i>
                 </button>
             </div>
@@ -254,7 +269,8 @@
                         </select>
                     </div>
                 </div>
-                <button data-action="loadComparison" class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                <button data-action="loadComparison"
+                    class="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                     Comparar
                 </button>
             </div>
@@ -284,7 +300,8 @@
         <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold text-slate-800">Nueva Estación</h3>
-                <button data-action="closeModal" data-modal="modal-add-station" class="text-slate-400 hover:text-slate-600">
+                <button data-action="closeModal" data-modal="modal-add-station"
+                    class="text-slate-400 hover:text-slate-600">
                     <i class="fas fa-times text-xl"></i>
                 </button>
             </div>
@@ -292,32 +309,40 @@
             <form id="add-station-form" class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-slate-600 mb-1">Nombre *</label>
-                    <input type="text" name="name" required class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="text" name="name" required
+                        class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-600 mb-1">Descripción</label>
-                    <textarea name="description" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none" rows="2"></textarea>
+                    <textarea name="description"
+                        class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                        rows="2"></textarea>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-slate-600 mb-1">Latitud</label>
-                        <input type="number" name="location_lat" step="any" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="number" name="location_lat" step="any"
+                            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-slate-600 mb-1">Longitud</label>
-                        <input type="number" name="location_lng" step="any" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="number" name="location_lng" step="any"
+                            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-slate-600 mb-1">Altitud (m)</label>
-                    <input type="number" name="altitude" class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="number" name="altitude"
+                        class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
 
                 <div class="flex gap-3 pt-4">
-                    <button type="button" data-action="closeModal" data-modal="modal-add-station" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 transition">
+                    <button type="button" data-action="closeModal" data-modal="modal-add-station"
+                        class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-lg hover:bg-slate-300 transition">
                         Cancelar
                     </button>
-                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                    <button type="submit"
+                        class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
                         Crear Estación
                     </button>
                 </div>
@@ -337,4 +362,5 @@
 
     <script src="js/app.js"></script>
 </body>
+
 </html>

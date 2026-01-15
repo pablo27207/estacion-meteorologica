@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
+        e.preventDefault(); // Prevent # scroll jump
         const action = target.dataset.action;
 
         switch (action) {
