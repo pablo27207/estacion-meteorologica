@@ -1,0 +1,138 @@
+/* GIPIS Weather Station - Custom Styles */
+
+* {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Navigation */
+.nav-link.active {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+/* Views */
+.view {
+    animation: fadeIn 0.2s ease-out;
+}
+
+.view.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Cards hover effect */
+.bg-white {
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.bg-white:hover {
+    transform: translateY(-1px);
+}
+
+/* Status indicators */
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Form focus states */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Buttons */
+button {
+    transition: all 0.15s ease;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* Mobile sidebar overlay */
+@media (max-width: 768px) {
+    #sidebar {
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
+    }
+}
+
+/* Chart containers */
+canvas {
+    max-height: 250px;
+}
+
+/* Loading state */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Alert colors by type */
+.alert-frost { border-left-color: #3b82f6; }
+.alert-heat { border-left-color: #ef4444; }
+.alert-soil { border-left-color: #f59e0b; }
+.alert-signal { border-left-color: #8b5cf6; }
+
+/* Responsive grid adjustments */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+    /* Can be enabled when dark mode is implemented */
+}

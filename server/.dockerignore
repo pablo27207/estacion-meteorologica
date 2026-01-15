@@ -1,0 +1,41 @@
+# Dependencies
+node_modules
+npm-debug.log
+
+# Data (se monta como volumen)
+data/
+*.db
+*.db-journal
+*.db-wal
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+docs/
+
+# Tests
+test/
+*.test.js
+coverage/
