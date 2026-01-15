@@ -10,8 +10,8 @@ WORKDIR /app
 # Instalar dependencias de compilación para better-sqlite3
 RUN apk add --no-cache python3 make g++
 
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+COPY package.json ./
+RUN npm install --omit=dev
 
 # Stage 2: Production
 FROM node:20-alpine AS runner
