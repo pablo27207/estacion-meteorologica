@@ -65,6 +65,13 @@
                     </a>
                 </li>
                 <li>
+                    <a href="#" data-action="showView" data-view="signal"
+                        class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
+                        <i class="fas fa-signal w-5"></i>
+                        <span>Señal LoRa</span>
+                    </a>
+                </li>
+                <li>
                     <a href="#" data-action="showView" data-view="settings"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
                         <i class="fas fa-cog w-5"></i>
@@ -188,21 +195,29 @@
             </div>
 
             <!-- Charts -->
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-700">Gráficos Históricos</h3>
+                <select id="chart-period" class="border rounded-lg px-3 py-2 text-sm" data-action="changeChartPeriod">
+                    <option value="24h" selected>Últimas 24 horas</option>
+                    <option value="7d">Últimos 7 días</option>
+                    <option value="30d">Últimos 30 días</option>
+                </select>
+            </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Aire (24h)</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Aire</h3>
                     <canvas id="chart-temp-air"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Aire (24h)</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Aire</h3>
                     <canvas id="chart-hum-air"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Suelo (24h)</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Suelo</h3>
                     <canvas id="chart-temp-soil"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Suelo VWC (24h)</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Suelo VWC</h3>
                     <canvas id="chart-vwc-soil"></canvas>
                 </div>
             </div>
@@ -232,6 +247,24 @@
                     class="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-300 transition">
                     <i class="fas fa-sync-alt"></i>
                 </button>
+            </div>
+
+            <!-- Alerts explanation -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <h3 class="font-semibold text-blue-800 mb-2"><i class="fas fa-info-circle mr-2"></i>¿Cuándo se generan
+                    alertas?</h3>
+                <ul class="text-sm text-blue-700 space-y-1">
+                    <li><i class="fas fa-thermometer-full text-red-500 mr-2"></i><strong>Temperatura alta:</strong>
+                        Cuando supera los 35°C</li>
+                    <li><i class="fas fa-thermometer-empty text-blue-500 mr-2"></i><strong>Temperatura baja:</strong>
+                        Cuando baja de 0°C (helada)</li>
+                    <li><i class="fas fa-tint text-cyan-500 mr-2"></i><strong>Humedad aire alta:</strong> Superior al
+                        90%</li>
+                    <li><i class="fas fa-seedling text-amber-500 mr-2"></i><strong>Suelo seco:</strong> Humedad de suelo
+                        menor al 20%</li>
+                    <li><i class="fas fa-water text-emerald-500 mr-2"></i><strong>Suelo saturado:</strong> Humedad de
+                        suelo mayor al 80%</li>
+                </ul>
             </div>
 
             <div id="alerts-list" class="space-y-3">
@@ -277,6 +310,110 @@
 
             <div class="bg-white rounded-xl shadow-sm p-6">
                 <canvas id="chart-compare"></canvas>
+            </div>
+        </section>
+
+        <!-- SIGNAL ANALYSIS VIEW -->
+        <section id="view-signal" class="view hidden">
+            <h2 class="text-2xl font-bold text-slate-800 mb-6">Análisis de Señal LoRa</h2>
+
+            <div id="signal-no-station" class="hidden bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <p class="text-yellow-700">Seleccione una estación específica para ver el análisis detallado de señal.
+                </p>
+            </div>
+
+            <div id="signal-content">
+                <!-- Metrics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">RSSI Actual</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-rssi">--</span> <span
+                                        class="text-sm font-normal text-slate-400">dBm</span>
+                                </p>
+                            </div>
+                            <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                                <i class="fas fa-signal"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="rssi-status">--</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-indigo-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">SNR Actual</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-snr">--</span> <span
+                                        class="text-sm font-normal text-slate-400">dB</span>
+                                </p>
+                            </div>
+                            <div
+                                class="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600">
+                                <i class="fas fa-wave-square"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2" id="snr-status">--</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">Paquetes Recibidos</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1" id="val-packets">--</p>
+                            </div>
+                            <div
+                                class="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-2">En el periodo mostrado</p>
+                    </div>
+                </div>
+
+                <!-- Explanation -->
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
+                    <h3 class="font-semibold text-slate-700 mb-2"><i class="fas fa-info-circle mr-2"></i>Interpretación
+                        de Valores</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <h4 class="font-bold text-slate-600 mb-1">RSSI (Received Signal Strength Indicator)</h4>
+                            <ul class="text-slate-500 space-y-1">
+                                <li><span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> > -100
+                                    dBm: Excelente</li>
+                                <li><span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> -100 a
+                                    -115 dBm: Media/Buena</li>
+                                <li><span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-1"></span>
+                                    < -115 dBm: Débil (riesgo de pérdida)</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-600 mb-1">SNR (Signal-to-Noise Ratio)</h4>
+                            <ul class="text-slate-500 space-y-1">
+                                <li><span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-1"></span> > 0 dB:
+                                    Señal clara</li>
+                                <li><span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-1"></span> -7 a 0
+                                    dB: Ruido moderado</li>
+                                <li><span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-1"></span>
+                                    < -7 dB: Mucho ruido (Límite LoRa)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 gap-6">
+                    <div class="bg-white rounded-xl shadow-sm p-5">
+                        <h3 class="text-slate-600 font-semibold mb-4">Historial RSSI (dBm)</h3>
+                        <canvas id="chart-rssi" height="80"></canvas>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-5">
+                        <h3 class="text-slate-600 font-semibold mb-4">Historial SNR (dB)</h3>
+                        <canvas id="chart-snr" height="80"></canvas>
+                    </div>
+                </div>
             </div>
         </section>
 

@@ -2,8 +2,7 @@
 #include "lora.h"
 #include "display.h"
 #include "web_interface.h"
-#include "data_logger.h"
-#include <LittleFS.h>
+#include "server_client.h"
 
 // Web Server Instance
 AsyncWebServer server(80);
@@ -52,6 +51,13 @@ bool wifiInit() {
     
     if (WiFi.status() == WL_CONNECTED) {
         Serial.println("\nWiFi Connected!");
+        
+        // Configure DNS servers (UNPSJB DNS + Google DNS as fallback)
+        IPAddress dns1(10, 15, 24, 16);  // UNPSJB DNS
+        IPAddress dns2(8, 8, 8, 8);      // Google DNS
+        WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns1, dns2);
+        Serial.println("[WiFi] DNS configured: 10.15.24.16, 8.8.8.8");
+        
         display.drawStr(0, 30, "WiFi OK!");
         display.drawStr(0, 45, WiFi.localIP().toString().c_str());
         display.sendBuffer();
@@ -92,9 +98,7 @@ void webServerInit() {
             
             json += "\"sf\":" + String(currentSF) + ",";
             json += "\"bw\":" + String(currentBW) + ",";
-            json += "\"interval\":" + String(txInterval / 60000.0) + ",";
-            json += "\"logSize\":" + String(getLogFileSize()) + ",";
-            json += "\"logEntries\":" + String(logEntryCount);
+            json += "\"interval\":" + String(txInterval / 60000.0);
             json += "}";
             request->send(200, "application/json", json);
         });
@@ -119,15 +123,28 @@ void webServerInit() {
             }
         });
         
-        // CSV Download endpoint
-        server.on("/download.csv", HTTP_GET, [](AsyncWebServerRequest *request) {
-            request->send(LittleFS, "/data.csv", "text/csv", true);
+        // Get server configuration
+        server.on("/get_server", HTTP_GET, [](AsyncWebServerRequest *request) {
+            String json = "{";
+            json += "\"url\":\"" + serverUrl + "\",";
+            json += "\"apiKey\":\"" + apiKey + "\",";
+            json += "\"enabled\":" + String(serverEnabled ? "true" : "false");
+            json += "}";
+            request->send(200, "application/json", json);
         });
         
-        // Clear log endpoint
-        server.on("/clear_log", HTTP_GET, [](AsyncWebServerRequest *request) {
-            clearLogFile();
-            request->send(200, "text/plain", "Log cleared");
+        // Save server configuration
+        server.on("/save_server", HTTP_GET, [](AsyncWebServerRequest *request) {
+            if (request->hasParam("url") && request->hasParam("apiKey")) {
+                String url = request->getParam("url")->value();
+                String key = request->getParam("apiKey")->value();
+                bool enabled = request->hasParam("enabled") && request->getParam("enabled")->value() == "1";
+                
+                saveServerSettings(url, key, enabled);
+                request->send(200, "text/plain", "Configuración guardada");
+            } else {
+                request->send(400, "text/plain", "Faltan parámetros (url, apiKey)");
+            }
         });
     } else {
         // --- AP MODE (Configuration) ---

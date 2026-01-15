@@ -53,4 +53,10 @@ void saveServerSettings(const String& url, const String& key, bool enabled);
  */
 void loadServerSettings();
 
+/**
+ * Get number of packets pending in retry buffer
+ * @return number of buffered packets
+ */
+int getPendingCount();
+
 #endif

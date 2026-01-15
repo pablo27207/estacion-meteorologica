@@ -7,7 +7,7 @@
  *   - wifi_manager: WiFi connection and web server
  *   - display: OLED UI
  *   - button: User input handling
- *   - data_logger: LittleFS CSV logging
+ *   - server_client: Remote server communication
  *   - web_interface: HTML templates (header only)
  */
 
@@ -17,7 +17,7 @@
 #include "display.h"
 #include "button.h"
 #include "wifi_manager.h"
-#include "data_logger.h"
+#include "server_client.h"
 
 // Display update timing
 unsigned long lastDisplayUpdate = 0;
@@ -32,8 +32,8 @@ void setup() {
     
     // 2. Initialize Modules
     displayInit();
-    dataLoggerInit();  // Initialize LittleFS before WiFi
     wifiInit();
+    serverClientInit();  // Initialize remote server client
     
     if (!loraInit()) {
         display.drawStr(0, 60, "LoRa Init Failed!");

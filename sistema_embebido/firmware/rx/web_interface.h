@@ -87,28 +87,6 @@ const char index_html[] PROGMEM = R"rawliteral(
                         </div>
                         <div class="p-3 bg-emerald-50 rounded-lg text-emerald-600"><i class="fas fa-seedling text-xl"></i></div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Data Log Card -->
-            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-3">
-                        <div class="p-3 bg-violet-50 rounded-lg text-violet-600"><i class="fas fa-database text-xl"></i></div>
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-700">Historial de Datos</h3>
-                            <p class="text-sm text-slate-400"><span id="logEntries">0</span> registros (<span id="logSize">0</span> KB)</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-2">
-                        <a href="/download.csv" class="bg-violet-600 text-white px-4 py-2 rounded font-semibold hover:bg-violet-700 transition shadow-sm flex items-center gap-2">
-                            <i class="fas fa-download"></i> Descargar CSV
-                        </a>
-                        <button onclick="clearLog()" class="bg-red-100 text-red-600 px-4 py-2 rounded font-semibold hover:bg-red-200 transition flex items-center gap-2">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
             </div>
 
             <!-- Charts Grid -->
@@ -244,6 +222,31 @@ const char index_html[] PROGMEM = R"rawliteral(
                      <div id="cmdStatus" class="text-sm text-slate-500 font-mono">Esperando cambios...</div>
                      <button onclick="saveConfig()" class="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700 transition shadow-sm flex items-center gap-2">
                         <i class="fas fa-save"></i> Guardar Cambios
+                     </button>
+                </div>
+            </div>
+
+            <!-- Remote Server Config -->
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 mt-8">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><i class="fas fa-cloud-upload-alt text-green-500"></i> Servidor Remoto</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">URL del Servidor</label>
+                        <input type="text" id="serverUrl" placeholder="https://gipis.unp.edu.ar/weather" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">API Key</label>
+                        <input type="text" id="serverApiKey" placeholder="clave-secreta-estacion" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-green-500 outline-none">
+                    </div>
+                </div>
+                <div class="mt-4 flex items-center gap-2">
+                    <input type="checkbox" id="serverEnabled" class="w-5 h-5 text-green-600 rounded focus:ring-green-500">
+                    <label for="serverEnabled" class="text-sm font-semibold text-slate-600">Habilitar envío de datos al servidor</label>
+                </div>
+                <div class="mt-6 flex justify-between items-center bg-slate-50 p-4 rounded-lg">
+                     <div id="serverStatus" class="text-sm text-slate-500 font-mono">Esperando...</div>
+                     <button onclick="saveServer()" class="bg-green-600 text-white px-6 py-2 rounded font-semibold hover:bg-green-700 transition shadow-sm flex items-center gap-2">
+                        <i class="fas fa-cloud"></i> Guardar Servidor
                      </button>
                 </div>
             </div>
@@ -400,6 +403,45 @@ const char index_html[] PROGMEM = R"rawliteral(
                 })
                 .catch(e => alert("Error al borrar"));
         }
+
+        // --- SERVER CONFIG ---
+        function loadServerConfig() {
+            fetch('/get_server')
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById("serverUrl").value = d.url || "";
+                    document.getElementById("serverApiKey").value = d.apiKey || "";
+                    document.getElementById("serverEnabled").checked = d.enabled || false;
+                    document.getElementById("serverStatus").innerText = d.enabled ? "Habilitado" : "Deshabilitado";
+                })
+                .catch(e => {
+                    document.getElementById("serverStatus").innerText = "Error al cargar";
+                });
+        }
+
+        function saveServer() {
+            const url = document.getElementById("serverUrl").value;
+            const apiKey = document.getElementById("serverApiKey").value;
+            const enabled = document.getElementById("serverEnabled").checked ? "1" : "0";
+            
+            const st = document.getElementById("serverStatus");
+            st.innerText = "Guardando...";
+            st.className = "text-sm text-blue-500 font-mono";
+            
+            fetch(`/save_server?url=${encodeURIComponent(url)}&apiKey=${encodeURIComponent(apiKey)}&enabled=${enabled}`)
+                .then(r => r.text())
+                .then(t => {
+                    st.innerText = t;
+                    st.className = "text-sm text-green-600 font-mono font-bold";
+                })
+                .catch(e => {
+                    st.innerText = "Error de conexión";
+                    st.className = "text-sm text-red-500 font-mono";
+                });
+        }
+
+        // Load server config on page load
+        loadServerConfig();
     </script>
 </body>
 </html>

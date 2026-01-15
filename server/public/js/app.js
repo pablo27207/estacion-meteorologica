@@ -40,6 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
         selectStation(this.value);
     });
 
+    // Chart period selector handler
+    document.getElementById('chart-period')?.addEventListener('change', function () {
+        const stationId = state.selectedStation || (state.stations[0]?.id);
+        if (stationId) {
+            loadStationCharts(stationId, this.value);
+        }
+    });
+
     // Event delegation for all data-action elements
     document.body.addEventListener('click', function (e) {
         const target = e.target.closest('[data-action]');
@@ -129,6 +137,43 @@ function initCharts() {
         }
     });
 
+    // Signal charts
+    const signalConfigs = [
+        { id: 'chart-rssi', label: 'RSSI (dBm)', color: '#3b82f6' },
+        { id: 'chart-snr', label: 'SNR (dB)', color: '#8b5cf6' }
+    ];
+
+    signalConfigs.forEach(cfg => {
+        const ctx = document.getElementById(cfg.id);
+        if (ctx) {
+            state.charts[cfg.id] = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: cfg.label,
+                        data: [],
+                        borderColor: cfg.color,
+                        backgroundColor: cfg.color + '20',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    ...commonOpts,
+                    scales: {
+                        x: { display: true, grid: { display: false } },
+                        y: {
+                            display: true,
+                            grid: { color: '#f1f5f9' },
+                            title: { display: true, text: cfg.label }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
     // Compare chart
     const compareCtx = document.getElementById('chart-compare');
     if (compareCtx) {
@@ -171,7 +216,7 @@ async function loadDashboard() {
             updateValueCard('val-vwc-soil', targetStation.lastReading.vwcSoil);
         }
 
-        // Update stations grid
+        // Update stations grid - now shows min/max stats (complementary to current values above)
         renderStationsGrid(data.stations);
 
         // Update alert badge
@@ -234,6 +279,11 @@ function updateStationSelector() {
     // Clear and rebuild
     selector.innerHTML = '<option value="">Todas las estaciones</option>';
 
+    // Clear compare select before filling
+    if (compareSelect) {
+        compareSelect.innerHTML = '';
+    }
+
     state.stations.forEach(station => {
         selector.innerHTML += `<option value="${station.id}">${station.name}</option>`;
         if (compareSelect) {
@@ -247,7 +297,7 @@ function updateStationSelector() {
 }
 
 /**
- * Render stations grid cards
+ * Render stations grid cards - shows min/max historical values
  */
 function renderStationsGrid(stations) {
     const grid = document.getElementById('stations-grid');
@@ -264,6 +314,9 @@ function renderStationsGrid(stations) {
         card.className = 'bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition cursor-pointer';
         card.onclick = () => selectStation(station.id);
 
+        // Use stats for min/max display
+        const stats = station.stats;
+
         card.innerHTML = `
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center gap-3">
@@ -278,27 +331,36 @@ function renderStationsGrid(stations) {
                 <span class="w-3 h-3 rounded-full ${statusColor}"></span>
             </div>
 
-            ${station.lastReading ? `
+            ${stats ? `
+                <p class="text-xs text-slate-500 mb-2 font-medium">Rango Histórico (Min / Max)</p>
                 <div class="grid grid-cols-2 gap-3 text-sm">
-                    <div class="bg-slate-50 rounded-lg p-2">
-                        <span class="text-slate-400 text-xs">Temp</span>
-                        <p class="font-semibold">${station.lastReading.tempAir?.toFixed(1) ?? '--'}°C</p>
+                    <div class="bg-blue-50 rounded-lg p-2">
+                        <span class="text-blue-400 text-xs">Temp. Aire</span>
+                        <p class="font-semibold text-blue-700">
+                            ${stats.tempAir.min?.toFixed(1) ?? '--'} / ${stats.tempAir.max?.toFixed(1) ?? '--'}°C
+                        </p>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-2">
-                        <span class="text-slate-400 text-xs">Hum</span>
-                        <p class="font-semibold">${station.lastReading.humAir?.toFixed(1) ?? '--'}%</p>
+                    <div class="bg-cyan-50 rounded-lg p-2">
+                        <span class="text-cyan-400 text-xs">Hum. Aire</span>
+                        <p class="font-semibold text-cyan-700">
+                            ${stats.humAir.min?.toFixed(1) ?? '--'} / ${stats.humAir.max?.toFixed(1) ?? '--'}%
+                        </p>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-2">
-                        <span class="text-slate-400 text-xs">Suelo</span>
-                        <p class="font-semibold">${station.lastReading.vwcSoil?.toFixed(1) ?? '--'}%</p>
+                    <div class="bg-amber-50 rounded-lg p-2">
+                        <span class="text-amber-400 text-xs">Temp. Suelo</span>
+                        <p class="font-semibold text-amber-700">
+                            ${stats.tempSoil.min?.toFixed(1) ?? '--'} / ${stats.tempSoil.max?.toFixed(1) ?? '--'}°C
+                        </p>
                     </div>
-                    <div class="bg-slate-50 rounded-lg p-2">
-                        <span class="text-slate-400 text-xs">RSSI</span>
-                        <p class="font-semibold">${station.lastReading.rssi?.toFixed(0) ?? '--'} dBm</p>
+                    <div class="bg-emerald-50 rounded-lg p-2">
+                        <span class="text-emerald-400 text-xs">Hum. Suelo</span>
+                        <p class="font-semibold text-emerald-700">
+                            ${stats.vwcSoil.min?.toFixed(1) ?? '--'} / ${stats.vwcSoil.max?.toFixed(1) ?? '--'}%
+                        </p>
                     </div>
                 </div>
             ` : `
-                <p class="text-slate-400 text-sm text-center py-4">Sin datos recientes</p>
+                <p class="text-slate-400 text-sm text-center py-4">Sin datos históricos</p>
             `}
 
             ${station.alertCount > 0 ? `
@@ -338,15 +400,33 @@ function selectStation(stationId) {
 /**
  * Load charts for a specific station
  */
-async function loadStationCharts(stationId) {
+async function loadStationCharts(stationId, period = null) {
     try {
-        const response = await fetch(api(`/api/data/${stationId}/history?limit=100`));
+        // Get period from selector if not provided
+        if (!period) {
+            period = document.getElementById('chart-period')?.value || '24h';
+        }
+
+        // Calculate limit based on period (assuming ~6 readings/hour)
+        let limit = 144; // 24h default
+        if (period === '7d') limit = 1008;
+        if (period === '30d') limit = 4320;
+
+        const response = await fetch(api(`/api/data/${stationId}/history?limit=${limit}&period=${period}`));
         const data = await response.json();
 
         // Reverse to get chronological order
         data.reverse();
 
-        const labels = data.map(r => new Date(r.timestamp).toLocaleTimeString());
+        // Format labels based on period
+        const labels = data.map(r => {
+            const date = new Date(r.timestamp);
+            if (period === '24h') {
+                return date.toLocaleTimeString();
+            } else {
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        });
 
         // Update each chart
         updateChart('chart-temp-air', labels, data.map(r => r.temp_air));
@@ -388,7 +468,10 @@ async function loadStationConfig(stationId) {
                 </div>
                 <div class="grid grid-cols-3 gap-4">
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Spreading Factor</label>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1" title="Factor de dispersión LoRa. Mayor SF = mayor alcance pero menor velocidad de transmisión.">
+                            Spreading Factor
+                            <i class="fas fa-info-circle text-slate-400 ml-1 cursor-help" title="SF7: Corto alcance, alta velocidad. SF12: Largo alcance, baja velocidad."></i>
+                        </label>
                         <select id="cfg-sf" class="w-full border rounded-lg px-3 py-2">
                             ${[7, 8, 9, 10, 11, 12].map(sf =>
             `<option value="${sf}" ${station.config_sf === sf ? 'selected' : ''}>SF${sf}</option>`
@@ -396,7 +479,10 @@ async function loadStationConfig(stationId) {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Bandwidth</label>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1" title="Ancho de banda de la señal LoRa.">
+                            Bandwidth
+                            <i class="fas fa-info-circle text-slate-400 ml-1 cursor-help" title="125 kHz: Mayor sensibilidad. 500 kHz: Mayor velocidad pero menor alcance."></i>
+                        </label>
                         <select id="cfg-bw" class="w-full border rounded-lg px-3 py-2">
                             ${[125, 250, 500].map(bw =>
             `<option value="${bw}" ${station.config_bw === bw ? 'selected' : ''}>${bw} kHz</option>`
@@ -404,7 +490,10 @@ async function loadStationConfig(stationId) {
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-semibold text-slate-600 mb-1">Intervalo (min)</label>
+                        <label class="block text-sm font-semibold text-slate-600 mb-1" title="Tiempo entre envíos de datos en minutos.">
+                            Intervalo (min)
+                            <i class="fas fa-info-circle text-slate-400 ml-1 cursor-help" title="Cada cuántos minutos la estación envía datos. Menor intervalo = más datos pero mayor consumo de batería."></i>
+                        </label>
                         <input type="number" id="cfg-interval" value="${(station.config_interval / 60000).toFixed(1)}"
                             step="0.5" min="0.1" class="w-full border rounded-lg px-3 py-2">
                     </div>
@@ -414,10 +503,6 @@ async function loadStationConfig(stationId) {
                         class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                         Guardar Configuración
                     </button>
-                    <a href="api/data/${stationId}/export" download
-                        class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition">
-                        <i class="fas fa-download mr-2"></i>Exportar CSV
-                    </a>
                 </div>
             </div>
         `;
@@ -633,6 +718,7 @@ function showView(viewName) {
     // Load view-specific data
     if (viewName === 'alerts') refreshAlerts();
     if (viewName === 'stations') loadStationsList();
+    if (viewName === 'signal') loadSignalAnalysis();
 }
 
 /**
@@ -715,4 +801,87 @@ function refreshData() {
  */
 function startAutoRefresh() {
     state.refreshInterval = setInterval(loadDashboard, 30000); // 30 seconds
+}
+
+/**
+ * Load Signal Analysis data
+ */
+async function loadSignalAnalysis() {
+    const noStationMsg = document.getElementById('signal-no-station');
+    const content = document.getElementById('signal-content');
+
+    // Check if a station is selected
+    // If not selected but we have stations, select the first one implicitly for the view
+    // (though better to force user selection to be explicit, but let's be convenient)
+    let stationId = state.selectedStation;
+    if (!stationId && state.stations.length > 0) {
+        // use default
+        stationId = state.stations[0].id;
+    }
+
+    if (!stationId) {
+        noStationMsg.classList.remove('hidden');
+        content.classList.add('hidden');
+        return;
+    }
+
+    noStationMsg.classList.add('hidden');
+    content.classList.remove('hidden');
+
+    try {
+        const limit = 144; // Approx 24h
+        const response = await fetch(api(`/api/data/${stationId}/history?limit=${limit}`));
+        const data = await response.json();
+
+        // Reverse for chronological order
+        const chronoData = [...data].reverse();
+
+        if (chronoData.length === 0) return;
+
+        // 1. Update Metrics Cards (Last Values)
+        const last = chronoData[chronoData.length - 1];
+
+        // RSSI
+        const rssiVal = document.getElementById('val-rssi');
+        const rssiStatus = document.getElementById('rssi-status');
+        if (rssiVal) rssiVal.textContent = last.rssi?.toFixed(0) ?? '--';
+
+        if (rssiStatus && last.rssi) {
+            if (last.rssi > -100) {
+                rssiStatus.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle"></i> Excelente</span>';
+            } else if (last.rssi > -115) {
+                rssiStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> Buena/Regular</span>';
+            } else {
+                rssiStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-times-circle"></i> Débil</span>';
+            }
+        }
+
+        // SNR
+        const snrVal = document.getElementById('val-snr');
+        const snrStatus = document.getElementById('snr-status');
+        if (snrVal) snrVal.textContent = last.snr?.toFixed(1) ?? '--';
+
+        if (snrStatus && last.snr) {
+            if (last.snr > 0) {
+                snrStatus.innerHTML = '<span class="text-green-600"><i class="fas fa-check-circle"></i> Señal Clara</span>';
+            } else if (last.snr > -7) {
+                snrStatus.innerHTML = '<span class="text-yellow-600"><i class="fas fa-exclamation-circle"></i> Ruido Moderado</span>';
+            } else {
+                snrStatus.innerHTML = '<span class="text-red-600"><i class="fas fa-times-circle"></i> Mucho Ruido</span>';
+            }
+        }
+
+        // Packets count (in retrieved period)
+        const packetsVal = document.getElementById('val-packets');
+        if (packetsVal) packetsVal.textContent = chronoData.length;
+
+        // 2. Update Charts
+        const labels = chronoData.map(r => new Date(r.timestamp).toLocaleTimeString());
+
+        updateChart('chart-rssi', labels, chronoData.map(r => r.rssi));
+        updateChart('chart-snr', labels, chronoData.map(r => r.snr));
+
+    } catch (error) {
+        console.error('Error loading signal analysis:', error);
+    }
 }

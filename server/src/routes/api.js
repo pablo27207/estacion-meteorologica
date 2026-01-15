@@ -15,10 +15,21 @@ router.get('/dashboard', (req, res) => {
     try {
         const allStations = stations.getAll.all();
 
-        // Enriquecer con última lectura
+        // Enriquecer con última lectura y stats min/max
         const enriched = allStations.map(station => {
             const lastReading = readings.getLatest.get(station.id);
             const activeAlerts = alerts.getActive.all(station.id);
+
+            // Get min/max stats for this station
+            const stats = db.prepare(`
+                SELECT
+                    MIN(temp_air) as min_temp_air, MAX(temp_air) as max_temp_air,
+                    MIN(hum_air) as min_hum_air, MAX(hum_air) as max_hum_air,
+                    MIN(temp_soil) as min_temp_soil, MAX(temp_soil) as max_temp_soil,
+                    MIN(vwc_soil) as min_vwc_soil, MAX(vwc_soil) as max_vwc_soil
+                FROM readings
+                WHERE station_id = ?
+            `).get(station.id);
 
             // Calcular estado de conexión
             let connectionStatus = 'offline';
@@ -52,6 +63,12 @@ router.get('/dashboard', (req, res) => {
                     vwcSoil: lastReading.vwc_soil,
                     rssi: lastReading.rssi,
                     snr: lastReading.snr
+                } : null,
+                stats: stats ? {
+                    tempAir: { min: stats.min_temp_air, max: stats.max_temp_air },
+                    humAir: { min: stats.min_hum_air, max: stats.max_hum_air },
+                    tempSoil: { min: stats.min_temp_soil, max: stats.max_temp_soil },
+                    vwcSoil: { min: stats.min_vwc_soil, max: stats.max_vwc_soil }
                 } : null,
                 alertCount: activeAlerts.length
             };
