@@ -16,6 +16,16 @@ const COLORS = [
     '#8b5cf6', '#ec4899', '#f43f5e', '#14b8a6'
 ];
 
+/**
+ * API helper - construye URLs relativas correctamente
+ * Funciona tanto con subdominio como con path-based routing
+ */
+function api(path) {
+    // Remover / inicial si existe para hacer la ruta relativa
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    return cleanPath;
+}
+
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     initCharts();
@@ -87,7 +97,7 @@ function initCharts() {
  */
 async function loadDashboard() {
     try {
-        const response = await fetch('/api/dashboard');
+        const response = await fetch(api('/api/dashboard'));
         const data = await response.json();
 
         state.stations = data.stations;
@@ -279,7 +289,7 @@ function selectStation(stationId) {
  */
 async function loadStationCharts(stationId) {
     try {
-        const response = await fetch(`/api/data/${stationId}/history?limit=100`);
+        const response = await fetch(api(`/api/data/${stationId}/history?limit=100`));
         const data = await response.json();
 
         // Reverse to get chronological order
@@ -315,7 +325,7 @@ function updateChart(chartId, labels, data) {
  */
 async function loadStationConfig(stationId) {
     try {
-        const response = await fetch(`/api/stations/${stationId}`);
+        const response = await fetch(api(`/api/stations/${stationId}`));
         const station = await response.json();
 
         const form = document.getElementById('station-config-form');
@@ -353,7 +363,7 @@ async function loadStationConfig(stationId) {
                         class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
                         Guardar Configuración
                     </button>
-                    <a href="/api/data/${stationId}/export" download
+                    <a href="api/data/${stationId}/export" download
                         class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 transition">
                         <i class="fas fa-download mr-2"></i>Exportar CSV
                     </a>
@@ -374,7 +384,7 @@ async function saveStationConfig(stationId) {
     const interval = parseFloat(document.getElementById('cfg-interval').value) * 60000;
 
     try {
-        const response = await fetch(`/api/stations/${stationId}/config`, {
+        const response = await fetch(api(`/api/stations/${stationId}/config`), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sf, bw, interval })
@@ -409,7 +419,7 @@ function updateAlertBadge(count) {
  */
 async function refreshAlerts() {
     try {
-        const response = await fetch('/api/alerts');
+        const response = await fetch(api('/api/alerts'));
         const alerts = await response.json();
 
         const list = document.getElementById('alerts-list');
@@ -457,7 +467,7 @@ async function refreshAlerts() {
  */
 async function acknowledgeAlert(alertId) {
     try {
-        await fetch(`/api/alerts/${alertId}/acknowledge`, { method: 'POST' });
+        await fetch(api(`/api/alerts/${alertId}/acknowledge`), { method: 'POST' });
         refreshAlerts();
         loadDashboard();
     } catch (error) {
@@ -482,7 +492,7 @@ async function loadComparison() {
 
     try {
         const response = await fetch(
-            `/api/compare?stationIds=${selected.join(',')}&metric=${metric}&period=${period}`
+            api(`/api/compare?stationIds=${selected.join(',')}&metric=${metric}&period=${period}`)
         );
         const data = await response.json();
 
@@ -528,7 +538,7 @@ async function handleAddStation(e) {
     const data = Object.fromEntries(formData);
 
     try {
-        const response = await fetch('/api/stations', {
+        const response = await fetch(api('/api/stations'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -579,7 +589,7 @@ function showView(viewName) {
  */
 async function loadStationsList() {
     try {
-        const response = await fetch('/api/stations');
+        const response = await fetch(api('/api/stations'));
         const stations = await response.json();
 
         const list = document.getElementById('stations-list');
@@ -604,7 +614,7 @@ async function loadStationsList() {
                             class="bg-slate-100 text-slate-600 px-4 py-2 rounded-lg hover:bg-slate-200 transition">
                             <i class="fas fa-cog"></i>
                         </button>
-                        <a href="/api/data/${station.id}/export" download
+                        <a href="api/data/${station.id}/export" download
                             class="bg-blue-100 text-blue-600 px-4 py-2 rounded-lg hover:bg-blue-200 transition">
                             <i class="fas fa-download"></i>
                         </a>

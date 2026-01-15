@@ -6,6 +6,10 @@
 # Este compose se conecta a la red traefik-public
 # existente en tu infraestructura.
 #
+# Modos de acceso:
+#   - Subdominio: weather.ejemplo.com (requiere DNS)
+#   - Path: ejemplo.com/weather/ (sin DNS adicional)
+#
 # Uso:
 #   docker compose up -d
 #   docker compose logs -f
@@ -27,50 +31,52 @@ services:
     volumes:
       # Base de datos SQLite
       - weather-data:/app/data
-      # Logs (opcional)
-      # - ./logs:/app/logs
 
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Timezone para timestamps correctos
       - TZ=America/Argentina/Buenos_Aires
+      # Base path para cuando se usa PathPrefix
+      - BASE_PATH=${BASE_PATH:-}
 
-    # No exponer puerto directamente, solo via Traefik
     expose:
       - "3000"
 
-    # Conectar a la red de Traefik
     networks:
       - traefik-public
 
-    # Labels de Traefik para routing
+    # ============================================
+    # Labels de Traefik - PATH-BASED ROUTING
+    # Acceso via: https://gipis.unp.edu.ar/weather/
+    # ============================================
     labels:
       - "traefik.enable=true"
 
-      # Router HTTPS principal
-      - "traefik.http.routers.weather.rule=Host(`${WEATHER_DOMAIN:-weather.gipis.unp.edu.ar}`)"
+      # Router: mismo dominio + path /weather
+      - "traefik.http.routers.weather.rule=Host(`${MAIN_DOMAIN:-gipis.unp.edu.ar}`) && PathPrefix(`/weather`)"
       - "traefik.http.routers.weather.entrypoints=websecure"
       - "traefik.http.routers.weather.tls=true"
+      - "traefik.http.routers.weather.priority=100"
 
       # Servicio
       - "traefik.http.services.weather.loadbalancer.server.port=3000"
 
-      # Middlewares opcionales
-      # Rate limiting para API
+      # Middleware: Strip prefix /weather antes de enviar al backend
+      # /weather/api/stations -> /api/stations
+      - "traefik.http.middlewares.weather-stripprefix.stripprefix.prefixes=/weather"
+
+      # Rate limiting
       - "traefik.http.middlewares.weather-ratelimit.ratelimit.average=100"
       - "traefik.http.middlewares.weather-ratelimit.ratelimit.burst=50"
 
-      # Headers de seguridad adicionales
+      # Headers de seguridad
       - "traefik.http.middlewares.weather-headers.headers.stsSeconds=31536000"
-      - "traefik.http.middlewares.weather-headers.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.weather-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.weather-headers.headers.contentTypeNosniff=true"
 
-      # Aplicar middlewares al router
-      - "traefik.http.routers.weather.middlewares=weather-ratelimit,weather-headers"
+      # Aplicar middlewares (stripprefix es crítico!)
+      - "traefik.http.routers.weather.middlewares=weather-stripprefix,weather-ratelimit,weather-headers"
 
-    # Healthcheck
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
@@ -79,14 +85,14 @@ services:
       start_period: 10s
 
 # ============================================
-# Volúmenes persistentes
+# Volúmenes
 # ============================================
 volumes:
   weather-data:
     name: gipis-weather-data
 
 # ============================================
-# Red externa (creada por el compose principal)
+# Red externa (del compose principal de Traefik)
 # ============================================
 networks:
   traefik-public:
