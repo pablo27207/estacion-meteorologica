@@ -56,6 +56,8 @@ services:
       - "traefik.http.routers.weather.rule=Host(`${MAIN_DOMAIN:-gipis.unp.edu.ar}`) && PathPrefix(`/weather`)"
       - "traefik.http.routers.weather.entrypoints=websecure"
       - "traefik.http.routers.weather.tls=true"
+      # Usar Let's Encrypt (si está configurado en Traefik)
+      - "traefik.http.routers.weather.tls.certresolver=letsencrypt"
       - "traefik.http.routers.weather.priority=100"
 
       # Servicio
