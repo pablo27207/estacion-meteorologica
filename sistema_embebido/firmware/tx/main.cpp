@@ -1,32 +1,45 @@
 /**
- * TX Node - Main Entry Point
+ * TX Node - Main Entry Point (WiFi Mode)
  * 
  * This is the transmitter node of the weather station.
+ * Sends data directly to server via WiFi/HTTPS.
+ * 
  * Modules:
  *   - sensors: DHT22, DS18B20, EC-5
  *   - sd_logger: CSV data logging
- *   - lora: SX1262 communication
+ *   - wifi_manager: WiFi connectivity + config portal
+ *   - server_client: HTTPS data upload
  *   - display: OLED UI
  *   - button: User input handling
+ *   - rtc: Real time clock
  */
 
 #include <Arduino.h>
 #include "../shared/config.h"
 #include "sensors.h"
 #include "sd_logger.h"
-#include "lora.h"
 #include "display.h"
 #include "button.h"
+#include "rtc.h"
+#include "wifi_manager.h"
+#include "server_client.h"
 
 // Current sensor readings
 MeteorDataPacket currentData;
 
 // Timing
 unsigned long lastMeasureTime = 0;
-unsigned long lastTxTime = 0;
+unsigned long lastSendTime = 0;
+
+// Send interval (ms) - configurable via web interface
+unsigned long sendInterval = 60000;  // 1 minute default
+
+// Packet counter
+unsigned long packetCounter = 0;
 
 void setup() {
     Serial.begin(115200);
+    Serial.println("\n=== TX WiFi Mode ===");
     
     // 1. Power Control
     pinMode(VEXT_CTRL, OUTPUT);
@@ -35,98 +48,125 @@ void setup() {
     digitalWrite(35, LOW); // LED Off
     delay(100);
     
-    // 2. Initialize Modules
+    // 2. Initialize Display first (for status messages)
     displayInit();
+    
+    // 3. Initialize RTC
+    rtcInit();
+    
+    // 4. Initialize sensors
     sensorsInit();
+    
+    // 5. Initialize SD card
     sdInit();
     
-    if (!loraInit()) {
-        display.drawStr(0, 30, "LoRa Error!");
-        display.sendBuffer();
-        while (true);
-    }
+    // 6. Initialize WiFi
+    bool wifiOk = wifiInit();
+    delay(1000);
     
+    // 7. Initialize web server
+    webServerInit();
+    
+    // 8. Initialize server client
+    serverClientInit();
+    
+    // 9. Initialize button
     buttonInit();
     lastInteraction = millis();
+    
+    Serial.println("TX Ready. Commands: SET_TIME,YYYY,MM,DD,HH,MM,SS | GET_TIME");
+    if (wifiOk) {
+        Serial.print("IP: ");
+        Serial.println(WiFi.localIP());
+    }
+}
+
+void handleSerial() {
+    if (Serial.available()) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+        
+        if (cmd.startsWith("SET_TIME,")) {
+            // Format: SET_TIME,YYYY,MM,DD,HH,MM,SS
+            int parts[6];
+            int idx = 0;
+            int start = 9;
+            
+            for (int i = 0; i < 6 && idx < 6; i++) {
+                int comma = cmd.indexOf(',', start);
+                if (comma == -1) comma = cmd.length();
+                parts[idx++] = cmd.substring(start, comma).toInt();
+                start = comma + 1;
+            }
+            
+            if (idx == 6) {
+                rtcSetTime(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+                Serial.printf("RTC Set: %04d-%02d-%02d %02d:%02d:%02d\n",
+                              parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]);
+            } else {
+                Serial.println("Error: Use SET_TIME,YYYY,MM,DD,HH,MM,SS");
+            }
+        } else if (cmd == "GET_TIME") {
+            Serial.printf("RTC: %s\n", rtcGetTimestamp().c_str());
+        } else if (cmd == "SEND") {
+            // Force send now
+            readSensors(currentData);
+            currentData.packetId = ++packetCounter;
+            sendToServer(currentData);
+        } else if (cmd == "STATUS") {
+            Serial.printf("WiFi: %s RSSI: %d\n", 
+                         WiFi.status() == WL_CONNECTED ? "OK" : "DISC",
+                         WiFi.RSSI());
+            Serial.printf("Server: %s Pending: %d\n",
+                         lastServerOk ? "OK" : "FAIL",
+                         getPendingCount());
+        }
+    }
 }
 
 void loop() {
     // 1. Handle User Input
     handleButton();
+    handleSerial();
     
     // 2. Check Screen Timeout
     checkScreenTimeout();
     
-    // 3. Measurement Cycle (SD logging)
+    // 3. Maintain WiFi connection
+    wifiLoop();
+    
+    // 4. Measurement Cycle (every measureInterval)
     if (millis() - lastMeasureTime > measureInterval || lastMeasureTime == 0) {
         readSensors(currentData);
-        currentData.packetId = packetCounter;
-        currentData.interval = txInterval;
+        currentData.packetId = ++packetCounter;
         
         // Log to SD
         logToSD(currentData);
         lastMeasureTime = millis();
         
-        Serial.printf("Measured: T=%.1f H=%.1f\n", currentData.tempAire, currentData.humAire);
+        Serial.printf("[%s] Measured: T=%.1f H=%.1f\n", 
+                      rtcGetTimestamp().c_str(), currentData.tempAire, currentData.humAire);
     }
     
-    // 4. Transmission Cycle (LoRa)
-    if (millis() - lastTxTime > txInterval || lastTxTime == 0) {
-        // Ensure we have fresh data
+    // 5. Server Send Cycle (every sendInterval)
+    if (millis() - lastSendTime > sendInterval || lastSendTime == 0) {
+        // Ensure fresh data
         if (lastMeasureTime == 0 || millis() - lastMeasureTime > measureInterval) {
             readSensors(currentData);
-            currentData.packetId = packetCounter;
-            currentData.interval = txInterval;
+            currentData.packetId = ++packetCounter;
         }
         
-        // Transmit
-        int state = loraTransmit(currentData);
-        lastTxTime = millis();
-        
-        if (state == RADIOLIB_ERR_NONE) {
-            // Listen for Remote Commands (2 second window)
-            loraStartReceive();
-            unsigned long rxStart = millis();
-            
-            while (millis() - rxStart < 2000) {
-                handleButton(); // Keep UI alive
-                
-                if (operationDone) {
-                    operationDone = false;
-                    ConfigPacket packet;
-                    int rxState = radio.readData((uint8_t*)&packet, sizeof(ConfigPacket));
-                    
-                    if (rxState == RADIOLIB_ERR_NONE && packet.magic == CMD_MAGIC) {
-                        Serial.println("CMD Received!");
-                        
-                        // Visual Feedback
-                        display.clearBuffer();
-                        display.setFont(u8g2_font_ncenB14_tr);
-                        display.drawStr(10, 40, "CMD RECIBIDO!");
-                        display.sendBuffer();
-                        delay(1000);
-                        
-                        // Apply Configuration
-                        bool loraChanged = false;
-                        if (packet.sf != currentSF) { currentSF = packet.sf; loraChanged = true; }
-                        if (packet.bw != currentBW) { currentBW = packet.bw; loraChanged = true; }
-                        txInterval = packet.interval;
-                        
-                        Serial.printf("New Config: SF%d BW%.0f Int%lu\n", currentSF, currentBW, txInterval);
-                        if (loraChanged) applyLoRaConfig();
-                        
-                        break;
-                    }
-                }
-                delay(10);
-            }
-            loraSleep();
-        } else {
-            Serial.println("TX Fail");
-            loraSleep();
+        // Send to server
+        if (wifiConnected) {
+            bool ok = sendToServer(currentData);
+            Serial.printf("[%s] Server send: %s\n", 
+                         rtcGetTimestamp().c_str(), 
+                         ok ? "OK" : "FAIL");
         }
+        
+        lastSendTime = millis();
     }
     
-    // 5. Render Display
-    renderScreen(currentData, lastTxTime, txInterval);
+    // 6. Render Display
+    renderScreen(currentData, lastSendTime, sendInterval);
 }

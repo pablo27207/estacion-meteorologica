@@ -22,14 +22,13 @@ extern int popupSelection;
 extern int scrIndex;
 extern unsigned long lastInteraction;
 
+// Intervals
+extern unsigned long measureInterval;
+
 // Config options (arrays)
-extern const int sfValues[];
-extern const char* sfLabels[];
-extern const float bwValues[];
-extern const char* bwLabels[];
-extern const unsigned long measureValues[];  // Measure interval options
+extern const unsigned long measureValues[];
 extern const char* measureLabels[];
-extern const unsigned long txValues[];       // TX interval options
+extern const unsigned long txValues[];
 extern const char* txLabels[];
 extern const unsigned long scrValues[];
 extern const char* scrLabels[];
@@ -45,12 +44,13 @@ void checkScreenTimeout();
 
 // Draw functions
 void drawSensors(const MeteorDataPacket& data);
-void drawStatus();
+void drawWiFiStatus();
 void drawSDStatus();
+void drawRTC();
 void drawConfig();
 void drawPopup(const char* title, const char* opts[], int count, int sel);
 
 // Full screen render cycle
-void renderScreen(const MeteorDataPacket& data, unsigned long lastTxTime, unsigned long txInterval);
+void renderScreen(const MeteorDataPacket& data, unsigned long lastSendTime, unsigned long sendInterval);
 
 #endif
