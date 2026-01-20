@@ -10,11 +10,14 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session);
 
 // Routes
 const stationsRouter = require('./routes/stations');
 const dataRouter = require('./routes/data');
 const apiRouter = require('./routes/api');
+const authRouter = require('./routes/auth');
 
 // Database
 const db = require('./models/database');
@@ -27,11 +30,11 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "cdn.jsdelivr.net", "cdnjs.cloudflare.com"],
-            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "cdn.tailwindcss.com", "cdn.jsdelivr.net", "cdnjs.cloudflare.com", "unpkg.com"],
+            styleSrc: ["'self'", "'unsafe-inline'", "cdnjs.cloudflare.com", "fonts.googleapis.com", "unpkg.com"],
             fontSrc: ["'self'", "fonts.gstatic.com", "cdnjs.cloudflare.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'", "cdn.jsdelivr.net"]
+            imgSrc: ["'self'", "data:", "https:", "*.tile.openstreetmap.org"],
+            connectSrc: ["'self'", "cdn.jsdelivr.net", "*.tile.openstreetmap.org", "unpkg.com"]
         }
     }
 }));
@@ -50,16 +53,41 @@ const generalLimiter = rateLimit({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('combined'));
 app.use(generalLimiter);
 
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, '../public')));
+// Session middleware
+app.use(session({
+    store: new SQLiteStore({
+        db: 'sessions.db',
+        dir: path.join(__dirname, '../data')
+    }),
+    secret: process.env.SESSION_SECRET || 'gipis-weather-secret-dev',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Base path para routing (vacío en dev, '/weather' en producción)
+const BASE_PATH = process.env.BASE_PATH || '';
+
+// Servir archivos estáticos (excluyendo index.html para manejarlo dinámicamente)
+app.use(express.static(path.join(__dirname, '../public'), {
+    index: false  // No servir index.html automáticamente
+}));
 
 // API Routes
+app.use('/api/auth', authRouter);
 app.use('/api/stations', stationsRouter);
 app.use('/api/data', ingestLimiter, dataRouter);
 app.use('/api', apiRouter);
@@ -73,9 +101,20 @@ app.get('/health', (req, res) => {
     });
 });
 
-// SPA fallback - servir index.html para rutas no encontradas
+// SPA fallback - servir index.html con BASE_PATH inyectado
+const fs = require('fs');
+const indexHtmlPath = path.join(__dirname, '../public/index.html');
+
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    // Leer el HTML y reemplazar el base href dinámicamente
+    let html = fs.readFileSync(indexHtmlPath, 'utf8');
+
+    // Determinar el base href correcto
+    // En dev: "/" | En producción: "/weather/"
+    const baseHref = BASE_PATH ? `${BASE_PATH}/` : '/';
+    html = html.replace(/<base href="[^"]*">/, `<base href="${baseHref}">`);
+
+    res.type('html').send(html);
 });
 
 // Error handler

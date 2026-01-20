@@ -1,0 +1,12 @@
+{
+    "name": "weather-simulator",
+    "version": "1.0.0",
+    "description": "Simulador de estación meteorológica para desarrollo",
+    "main": "simulate-station.js",
+    "scripts": {
+        "start": "node simulate-station.js"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

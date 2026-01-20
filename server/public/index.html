@@ -13,81 +13,132 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="css/app.css">
 </head>
 
 <body class="bg-slate-100 text-slate-800 font-sans">
     <!-- Sidebar -->
     <aside id="sidebar"
-        class="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 transition-transform z-50">
-        <div class="p-6 border-b border-slate-700">
+        class="fixed left-0 top-0 h-full w-64 bg-slate-900 text-white transform -translate-x-full md:translate-x-0 transition-all duration-300 z-50 flex flex-col">
+
+        <!-- Logo and collapse button -->
+        <div class="p-4 border-b border-slate-700 shrink-0">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                     <i class="fas fa-cloud-sun text-xl"></i>
                 </div>
-                <div>
+                <div class="sidebar-text flex-1 overflow-hidden">
                     <h1 class="font-bold text-lg">GIPIS</h1>
                     <p class="text-xs text-slate-400">Weather Stations</p>
                 </div>
+                <!-- Collapse button (desktop only) -->
+                <button id="sidebar-collapse-btn" data-action="toggleSidebarCollapse"
+                    class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-700 transition"
+                    title="Colapsar menú">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
             </div>
         </div>
 
-        <nav class="p-4">
+        <!-- Selector removed -->
+
+        <nav class="p-4 flex-1 overflow-y-auto">
             <ul class="space-y-2">
                 <li>
                     <a href="#" data-action="showView" data-view="dashboard"
                         class="nav-link active flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-tachometer-alt w-5"></i>
-                        <span>Dashboard</span>
+                        <i class="fas fa-tachometer-alt w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Dashboard</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" data-action="showView" data-view="stations"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-broadcast-tower w-5"></i>
-                        <span>Estaciones</span>
+                        <i class="fas fa-broadcast-tower w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Estaciones</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" data-action="showView" data-view="alerts"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-bell w-5"></i>
-                        <span>Alertas</span>
+                        <i class="fas fa-bell w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Alertas</span>
                         <span id="alert-badge"
-                            class="ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                            class="sidebar-text ml-auto bg-red-500 text-xs px-2 py-0.5 rounded-full hidden">0</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" data-action="showView" data-view="compare"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-chart-bar w-5"></i>
-                        <span>Comparar</span>
+                        <i class="fas fa-chart-bar w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Comparar</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" data-action="showView" data-view="signal"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-signal w-5"></i>
-                        <span>Señal LoRa</span>
+                        <i class="fas fa-signal w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Señal LoRa</span>
                     </a>
                 </li>
                 <li>
                     <a href="#" data-action="showView" data-view="settings"
                         class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-800 transition">
-                        <i class="fas fa-cog w-5"></i>
-                        <span>Configuración</span>
+                        <i class="fas fa-cog w-5 flex-shrink-0"></i>
+                        <span class="sidebar-text">Configuración</span>
                     </a>
                 </li>
             </ul>
         </nav>
 
-        <!-- Station selector -->
-        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700">
-            <label class="text-xs text-slate-400 uppercase tracking-wider mb-2 block">Estación Activa</label>
-            <select id="station-selector"
-                class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="">Todas las estaciones</option>
-            </select>
+        <!-- Refresh and Status Footer -->
+        <div class="p-4 border-t border-slate-700 shrink-0">
+            <div class="mb-4 sidebar-text">
+                <p class="text-xs text-slate-400 mb-2" id="last-update-text">Última actualización: --</p>
+                <button data-action="refreshData"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg transition flex items-center justify-center gap-2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span>Actualizar</span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 text-sm mb-3" title="Estado del servidor">
+                <span id="connection-indicator" class="w-3 h-3 rounded-full bg-gray-400 flex-shrink-0"></span>
+                <span id="connection-text" class="sidebar-text text-slate-400 text-xs">Conectando...</span>
+            </div>
+            <!-- User Auth Section -->
+            <div id="user-section" class="pt-3 border-t border-slate-700">
+                <!-- Guest State -->
+                <div id="auth-guest" class="flex gap-2">
+                    <a href="login.html"
+                        class="flex-1 text-center text-xs py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition">
+                        <i class="fas fa-sign-in-alt mr-1"></i><span class="sidebar-text">Entrar</span>
+                    </a>
+                    <a href="register.html"
+                        class="flex-1 text-center text-xs py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition">
+                        <i class="fas fa-user-plus mr-1"></i><span class="sidebar-text">Registro</span>
+                    </a>
+                </div>
+                <!-- Logged In State (hidden by default) -->
+                <div id="auth-user" class="hidden">
+                    <div class="flex items-center gap-3 mb-2">
+                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-sm"></i>
+                        </div>
+                        <div class="sidebar-text flex-1 overflow-hidden">
+                            <p id="user-name" class="text-sm font-medium truncate">Usuario</p>
+                            <p id="user-role" class="text-xs text-slate-400">Viewer</p>
+                        </div>
+                    </div>
+                    <button id="logout-btn" data-action="logout"
+                        class="w-full text-xs py-2 bg-slate-700 hover:bg-red-600 text-slate-300 hover:text-white rounded-lg transition flex items-center justify-center gap-2">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="sidebar-text">Cerrar Sesión</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </aside>
 
@@ -102,96 +153,163 @@
     </header>
 
     <!-- Main content -->
-    <main class="md:ml-64 p-6 pt-20 md:pt-6 min-h-screen">
+    <main id="main-content" class="md:ml-64 p-6 pt-20 md:pt-6 min-h-screen transition-all duration-300">
 
         <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view active">
-            <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-800">Dashboard</h2>
-                    <p class="text-slate-500 text-sm" id="last-update-text">Última actualización: --</p>
-                </div>
-                <div class="flex items-center gap-4 mt-4 md:mt-0">
-                    <div class="flex items-center gap-2 text-sm">
-                        <span id="connection-indicator" class="w-3 h-3 rounded-full bg-gray-400"></span>
-                        <span id="connection-text" class="text-slate-500">Conectando...</span>
-                    </div>
-                    <button data-action="refreshData"
-                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                        <i class="fas fa-sync-alt"></i>
-                        <span class="hidden md:inline">Actualizar</span>
-                    </button>
-                </div>
+            <h2 class="text-2xl font-bold text-slate-800">Dashboard</h2>
+            <p class="text-slate-500 text-sm">Seleccione una estación en el mapa para ver sus datos.</p>
+            </div>
             </div>
 
-            <!-- Stats cards -->
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-400 uppercase">Temp. Aire</p>
-                            <p class="text-2xl font-bold text-slate-700 mt-1">
-                                <span id="val-temp-air">--</span>
-                                <span class="text-sm text-slate-400 font-normal">°C</span>
-                            </p>
-                        </div>
-                        <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                            <i class="fas fa-thermometer-half text-xl"></i>
-                        </div>
-                    </div>
+            <!-- Main Dashboard Layout: Map (3/4) + Stats (1/4) -->
+            <!-- Use inline style for height to avoid Tailwind JIT issues with arbitrary values -->
+            <!-- Responsive Dashboard Layout -->
+            <!-- Responsive Dashboard Layout (Overlay Map) -->
+            <style>
+                @media (min-width: 1024px) {
+                    #dashboard-container {
+                        height: 650px;
+                        position: relative;
+                        /* Anchor for absolute children */
+                        display: block !important;
+                        /* Not flex on desktop, pure positioning */
+                    }
+
+                    /* Map takes full space */
+                    #map-container {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        bottom: 0;
+                        width: 100% !important;
+                        height: 100% !important;
+                        flex: none !important;
+                        box-shadow: none;
+                        border: none;
+                        z-index: 1;
+                        border-radius: 12px;
+                        overflow: hidden;
+                    }
+
+                    /* Stats overlay on the right */
+                    #stats-container {
+                        position: absolute;
+                        right: 80px;
+                        top: 20px;
+                        bottom: 20px;
+                        width: 320px !important;
+                        /* Fixed width for card column */
+                        height: auto !important;
+                        max-height: calc(100% - 40px);
+                        z-index: 10;
+                        /* Glassmorphism */
+                        background: rgba(255, 255, 255, 0.85);
+                        backdrop-filter: blur(8px);
+                        border-radius: 12px;
+                        padding: 16px;
+                        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+                        overflow-y: auto;
+                    }
+                }
+
+                @media (max-width: 1023px) {
+                    #dashboard-container {
+                        height: auto;
+                        display: flex !important;
+                        flex-direction: column !important;
+                    }
+
+                    /* On mobile, map has fixed height, stats auto below */
+                    #map-container {
+                        height: 400px;
+                        width: 100% !important;
+                        position: relative;
+                        z-index: 1;
+                    }
+
+                    #stats-container {
+                        height: auto;
+                        width: 100% !important;
+                        background: transparent;
+                        box-shadow: none;
+                        padding: 0;
+                    }
+                }
+            </style>
+
+            <div id="dashboard-container" class="flex flex-col gap-6 mb-6">
+                <!-- Map Container -->
+                <div id="map-container"
+                    class="w-full bg-white rounded-xl shadow-sm overflow-hidden border border-slate-200 relative">
+                    <div id="dashboard-map" class="w-full h-full z-10"></div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-cyan-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-400 uppercase">Hum. Aire</p>
-                            <p class="text-2xl font-bold text-slate-700 mt-1">
-                                <span id="val-hum-air">--</span>
-                                <span class="text-sm text-slate-400 font-normal">%</span>
-                            </p>
-                        </div>
-                        <div class="w-12 h-12 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600">
-                            <i class="fas fa-tint text-xl"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-amber-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-400 uppercase">Temp. Suelo</p>
-                            <p class="text-2xl font-bold text-slate-700 mt-1">
-                                <span id="val-temp-soil">--</span>
-                                <span class="text-sm text-slate-400 font-normal">°C</span>
-                            </p>
-                        </div>
-                        <div class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
-                            <i class="fas fa-temperature-low text-xl"></i>
+                <!-- Stats Container -->
+                <div id="stats-container" class="w-full flex flex-col gap-4 overflow-y-auto">
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">Temp. Aire</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-temp-air">--</span>
+                                    <span class="text-sm text-slate-400 font-normal">°C</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
+                                <i class="fas fa-thermometer-half text-xl"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-emerald-500">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-semibold text-slate-400 uppercase">Hum. Suelo</p>
-                            <p class="text-2xl font-bold text-slate-700 mt-1">
-                                <span id="val-vwc-soil">--</span>
-                                <span class="text-sm text-slate-400 font-normal">%</span>
-                            </p>
-                        </div>
-                        <div
-                            class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-                            <i class="fas fa-seedling text-xl"></i>
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-cyan-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">Hum. Aire</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-hum-air">--</span>
+                                    <span class="text-sm text-slate-400 font-normal">%</span>
+                                </p>
+                            </div>
+                            <div class="w-12 h-12 bg-cyan-50 rounded-lg flex items-center justify-center text-cyan-600">
+                                <i class="fas fa-tint text-xl"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Station cards grid -->
-            <div id="stations-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-                <!-- Populated dynamically -->
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-amber-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">Temp. Suelo</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-temp-soil">--</span>
+                                    <span class="text-sm text-slate-400 font-normal">°C</span>
+                                </p>
+                            </div>
+                            <div
+                                class="w-12 h-12 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600">
+                                <i class="fas fa-temperature-low text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm p-5 border-l-4 border-emerald-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase">Hum. Suelo</p>
+                                <p class="text-2xl font-bold text-slate-700 mt-1">
+                                    <span id="val-vwc-soil">--</span>
+                                    <span class="text-sm text-slate-400 font-normal">%</span>
+                                </p>
+                            </div>
+                            <div
+                                class="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
+                                <i class="fas fa-seedling text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- End Stats Container -->
             </div>
 
             <!-- Charts -->
@@ -205,19 +323,19 @@
             </div>
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Aire</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Aire (°C)</h3>
                     <canvas id="chart-temp-air"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Aire</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Aire (%)</h3>
                     <canvas id="chart-hum-air"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Suelo</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Temperatura Suelo (°C)</h3>
                     <canvas id="chart-temp-soil"></canvas>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm p-5">
-                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Suelo VWC</h3>
+                    <h3 class="text-slate-600 font-semibold mb-4">Humedad Suelo VWC (%)</h3>
                     <canvas id="chart-vwc-soil"></canvas>
                 </div>
             </div>
@@ -497,7 +615,8 @@
         </div>
     </div>
 
-    <script src="js/app.js"></script>
+    <script src="js/toast.js"></script>
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>

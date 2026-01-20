@@ -1,14 +1,15 @@
 # ============================================
 # GIPIS Weather Station Server
-# Docker Compose con integración Traefik
+# Docker Compose con integración nginx + Traefik
 # ============================================
 #
-# Este compose se conecta a la red traefik-public
+# Este compose se conecta a la red web-public
 # existente en tu infraestructura.
 #
-# Modos de acceso:
-#   - Subdominio: weather.ejemplo.com (requiere DNS)
-#   - Path: ejemplo.com/weather/ (sin DNS adicional)
+# Flujo de tráfico:
+#   Internet → nginx (OCSP stapling) → Traefik → Weather Server
+#
+# Acceso: https://gipis.unp.edu.ar/weather/
 #
 # Uso:
 #   docker compose up -d
@@ -37,25 +38,25 @@ services:
       - PORT=3000
       - TZ=America/Argentina/Buenos_Aires
       # Base path para cuando se usa PathPrefix
-      - BASE_PATH=${BASE_PATH:-}
+      - BASE_PATH=${BASE_PATH:-/weather}
 
     expose:
       - "3000"
 
     networks:
-      - traefik-public
+      - web-public
 
     # ============================================
     # Labels de Traefik - PATH-BASED ROUTING
     # Acceso via: https://gipis.unp.edu.ar/weather/
+    # (nginx maneja HTTPS, Traefik solo routing HTTP interno)
     # ============================================
     labels:
       - "traefik.enable=true"
 
       # Router: mismo dominio + path /weather
       - "traefik.http.routers.weather.rule=Host(`${MAIN_DOMAIN:-gipis.unp.edu.ar}`) && PathPrefix(`/weather`)"
-      - "traefik.http.routers.weather.entrypoints=websecure"
-      - "traefik.http.routers.weather.tls=true"
+      - "traefik.http.routers.weather.entrypoints=web"
       - "traefik.http.routers.weather.priority=100"
 
       # Servicio
@@ -78,7 +79,7 @@ services:
       - "traefik.http.routers.weather.middlewares=weather-stripprefix,weather-ratelimit,weather-headers"
 
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -92,8 +93,8 @@ volumes:
     name: gipis-weather-data
 
 # ============================================
-# Red externa (del compose principal de Traefik)
+# Red externa (del compose principal)
 # ============================================
 networks:
-  traefik-public:
+  web-public:
     external: true

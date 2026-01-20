@@ -71,6 +71,17 @@ db.exec(`
         FOREIGN KEY (station_id) REFERENCES stations(id)
     );
 
+    -- Tabla de usuarios
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'viewer',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        last_login TEXT
+    );
+
     -- Índices para optimizar queries
     CREATE INDEX IF NOT EXISTS idx_readings_station_time
         ON readings(station_id, timestamp DESC);
@@ -80,6 +91,9 @@ db.exec(`
 
     CREATE INDEX IF NOT EXISTS idx_alerts_station
         ON alerts(station_id, acknowledged);
+
+    CREATE INDEX IF NOT EXISTS idx_users_email
+        ON users(email);
 `);
 
 // Funciones de estaciones
@@ -187,9 +201,28 @@ const alertQueries = {
     `)
 };
 
+// Funciones de usuarios
+const userQueries = {
+    create: db.prepare(`
+        INSERT INTO users (username, email, password_hash, role)
+        VALUES (?, ?, ?, ?)
+    `),
+
+    getById: db.prepare(`SELECT id, username, email, role, created_at, last_login FROM users WHERE id = ?`),
+
+    getByEmail: db.prepare(`SELECT * FROM users WHERE email = ?`),
+
+    getByUsername: db.prepare(`SELECT * FROM users WHERE username = ?`),
+
+    updateLastLogin: db.prepare(`UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?`),
+
+    getAll: db.prepare(`SELECT id, username, email, role, created_at, last_login FROM users ORDER BY created_at DESC`)
+};
+
 module.exports = {
     db,
     stations: stationQueries,
     readings: readingQueries,
-    alerts: alertQueries
+    alerts: alertQueries,
+    users: userQueries
 };

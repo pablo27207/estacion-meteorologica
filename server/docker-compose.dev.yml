@@ -1,0 +1,92 @@
+# ============================================
+# GIPIS Weather Station Server - DESARROLLO
+# ============================================
+#
+# Este compose es para desarrollo LOCAL,
+# sin dependencias de nginx/Traefik.
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml up --build
+#   docker compose -f docker-compose.dev.yml logs -f
+#
+# Acceso: http://localhost:3000
+#
+# ============================================
+
+services:
+  # ============================================
+  # Weather Station Server - Development
+  # ============================================
+  weather-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: gipis-weather-dev
+    restart: unless-stopped
+
+    # Volúmenes para desarrollo
+    volumes:
+      # Base de datos SQLite (persistente)
+      - weather-data-dev:/app/data
+      # Hot-reload: código fuente (sin :ro para que nodemon detecte cambios)
+      - ./src:/app/src
+      - ./public:/app/public
+
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - TZ=America/Argentina/Buenos_Aires
+      # Sin BASE_PATH en desarrollo
+      - BASE_PATH=
+
+    # Puerto expuesto al host para acceso directo
+    ports:
+      - "3000:3000"
+
+    # Red interna aislada
+    networks:
+      - weather-dev
+
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # ============================================
+  # Weather Station Simulator
+  # Simula una estación enviando datos cada minuto
+  # ============================================
+  weather-simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: gipis-weather-simulator
+    restart: unless-stopped
+
+    environment:
+      - API_URL=http://weather-server:3000
+      - STATION_NAME=Estación Simulada (Dev)
+      - INTERVAL_MS=60000 # 1 minuto
+
+    networks:
+      - weather-dev
+
+    depends_on:
+      weather-server:
+        condition: service_healthy
+
+# ============================================
+# Volúmenes
+# ============================================
+volumes:
+  weather-data-dev:
+    name: gipis-weather-data-dev
+
+# ============================================
+# Red interna para desarrollo
+# ============================================
+networks:
+  weather-dev:
+    driver: bridge
