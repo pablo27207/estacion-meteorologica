@@ -195,19 +195,35 @@ void wifiReset() {
 }
 
 void wifiLoop() {
-    // Reconnect if disconnected
+    static unsigned long lastReconnectAttempt = 0;
+    const unsigned long RECONNECT_INTERVAL = 30000;  // 30 seconds
+    
+    // Only try reconnect if we were previously connected (STA mode with saved credentials)
     if (wifiConnected && WiFi.status() != WL_CONNECTED) {
-        Serial.println("WiFi lost, reconnecting...");
-        WiFi.reconnect();
-        
-        int retry = 0;
-        while (WiFi.status() != WL_CONNECTED && retry < 10) {
-            delay(500);
-            retry++;
-        }
-        
-        if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("Reconnect failed");
+        // Check if enough time passed since last attempt
+        if (millis() - lastReconnectAttempt > RECONNECT_INTERVAL) {
+            Serial.println("[WiFi] Connection lost, attempting reconnect...");
+            lastReconnectAttempt = millis();
+            
+            WiFi.disconnect();
+            delay(100);
+            WiFi.reconnect();
+            
+            // Wait briefly for connection
+            int retry = 0;
+            while (WiFi.status() != WL_CONNECTED && retry < 20) {
+                delay(250);
+                retry++;
+            }
+            
+            if (WiFi.status() == WL_CONNECTED) {
+                Serial.println("[WiFi] Reconnected!");
+                Serial.print("[WiFi] IP: ");
+                Serial.println(WiFi.localIP());
+            } else {
+                Serial.println("[WiFi] Reconnect failed, will retry in 30s");
+            }
         }
     }
 }
+

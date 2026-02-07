@@ -64,6 +64,8 @@ bool sendPacketToServer(const MeteorDataPacket& data, const String& timestamp) {
     doc["humAire"] = data.humAire;
     doc["tempSuelo"] = data.tempSuelo;
     doc["vwcSuelo"] = data.vwcSuelo;
+    doc["vBat"] = data.vBat;
+    doc["batPercent"] = data.batPercent;
     doc["timestamp"] = timestamp;
 
     String jsonPayload;

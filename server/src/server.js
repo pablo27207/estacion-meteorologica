@@ -18,6 +18,7 @@ const stationsRouter = require('./routes/stations');
 const dataRouter = require('./routes/data');
 const apiRouter = require('./routes/api');
 const authRouter = require('./routes/auth');
+const firmwareRouter = require('./routes/firmware');
 
 // Database
 const db = require('./models/database');
@@ -90,6 +91,7 @@ app.use(express.static(path.join(__dirname, '../public'), {
 app.use('/api/auth', authRouter);
 app.use('/api/stations', stationsRouter);
 app.use('/api/data', ingestLimiter, dataRouter);
+app.use('/api/firmware', firmwareRouter);
 app.use('/api', apiRouter);
 
 // Health check

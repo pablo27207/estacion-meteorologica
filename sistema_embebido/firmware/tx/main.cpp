@@ -23,6 +23,8 @@
 #include "rtc.h"
 #include "wifi_manager.h"
 #include "server_client.h"
+#include "battery.h"
+#include "ota.h"
 
 // Current sensor readings
 MeteorDataPacket currentData;
@@ -36,6 +38,9 @@ unsigned long sendInterval = 60000;  // 1 minute default
 
 // Packet counter
 unsigned long packetCounter = 0;
+
+// OTA check timing
+unsigned long lastOtaCheck = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -57,6 +62,9 @@ void setup() {
     // 4. Initialize sensors
     sensorsInit();
     
+    // 4b. Initialize battery monitor
+    batteryInit();
+    
     // 5. Initialize SD card
     sdInit();
     
@@ -73,6 +81,9 @@ void setup() {
     // 9. Initialize button
     buttonInit();
     lastInteraction = millis();
+    
+    // 10. Initialize OTA
+    otaInit();
     
     Serial.println("TX Ready. Commands: SET_TIME,YYYY,MM,DD,HH,MM,SS | GET_TIME");
     if (wifiOk) {
@@ -140,12 +151,17 @@ void loop() {
         readSensors(currentData);
         currentData.packetId = ++packetCounter;
         
+        // Read battery
+        currentData.vBat = readBatteryVoltage();
+        currentData.batPercent = getBatteryPercent();
+        
         // Log to SD
         logToSD(currentData);
         lastMeasureTime = millis();
         
-        Serial.printf("[%s] Measured: T=%.1f H=%.1f\n", 
-                      rtcGetTimestamp().c_str(), currentData.tempAire, currentData.humAire);
+        Serial.printf("[%s] Measured: T=%.1f H=%.1f Bat=%.2fV (%d%%)\n", 
+                      rtcGetTimestamp().c_str(), currentData.tempAire, currentData.humAire,
+                      currentData.vBat, currentData.batPercent);
     }
     
     // 5. Server Send Cycle (every sendInterval)
@@ -169,4 +185,10 @@ void loop() {
     
     // 6. Render Display
     renderScreen(currentData, lastSendTime, sendInterval);
+    
+    // 7. OTA Check (every hour)
+    if (wifiConnected && (millis() - lastOtaCheck > OTA_CHECK_INTERVAL || lastOtaCheck == 0)) {
+        otaCheckForUpdate();
+        lastOtaCheck = millis();
+    }
 }

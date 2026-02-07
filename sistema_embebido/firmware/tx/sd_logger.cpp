@@ -1,4 +1,5 @@
 #include "sd_logger.h"
+#include "rtc.h"
 
 // SPI Instance for SD
 static SPIClass sdSPI(HSPI);
@@ -26,7 +27,7 @@ void sdInit() {
         if(!SD.exists("/data.csv")) {
             File file = SD.open("/data.csv", FILE_WRITE);
             if(file) {
-                file.println("timestamp,packetId,tempAir,humAir,tempGnd,vwcGnd");
+                file.println("timestamp,packetId,tempAir,humAir,tempGnd,vwcGnd,vBat,batPct");
                 file.close();
             }
         }
@@ -43,10 +44,11 @@ void logToSD(const MeteorDataPacket& data) {
         return;
     }
     
-    // CSV Format: time(ms), id, tA, hA, tG, vwc
-    String line = String(millis()) + "," + String(data.packetId) + "," + 
+    // CSV Format: ISO timestamp, id, tA, hA, tG, vwc, vBat, batPct
+    String line = rtcGetTimestamp() + "," + String(data.packetId) + "," + 
                   String(data.tempAire) + "," + String(data.humAire) + "," + 
-                  String(data.tempSuelo) + "," + String(data.vwcSuelo);
+                  String(data.tempSuelo) + "," + String(data.vwcSuelo) + "," +
+                  String(data.vBat, 2) + "," + String(data.batPercent);
                   
     file.println(line);
     file.close();
@@ -54,3 +56,4 @@ void logToSD(const MeteorDataPacket& data) {
     sdStatusMsg = "Logging...";
     Serial.println("SD Log OK");
 }
+

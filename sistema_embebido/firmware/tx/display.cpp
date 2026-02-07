@@ -7,6 +7,8 @@
  *   2. SD Card Status  
  *   3. Configuration (intervals, screen timeout)
  *   4. RTC Clock
+ *   5. Battery Status
+ *   6. Firmware/OTA
  */
 
 #include "display.h"
@@ -14,6 +16,7 @@
 #include "rtc.h"
 #include "wifi_manager.h"
 #include "server_client.h"
+#include "ota.h"
 #include <WiFi.h>
 
 // Display Instance
@@ -73,9 +76,30 @@ void checkScreenTimeout() {
     }
 }
 
+void drawBatteryIcon(int x, int y, uint8_t percent) {
+    // Battery outline (16x8 pixels)
+    display.drawFrame(x, y, 14, 8);     // Body
+    display.drawBox(x + 14, y + 2, 2, 4); // Tip
+    
+    // Fill based on percentage
+    int fillWidth = (percent * 11) / 100;
+    if (fillWidth > 0) {
+        display.drawBox(x + 1, y + 1, fillWidth, 6);
+    }
+}
+
 void drawSensors(const MeteorDataPacket& data) {
     display.setFont(u8g2_font_6x10_tr);
     display.drawStr(0, 10, "1. SENSORES");
+    
+    // Battery indicator (top right)
+    drawBatteryIcon(96, 2, data.batPercent);
+    char batBuf[8];
+    sprintf(batBuf, "%d%%", data.batPercent);
+    display.setFont(u8g2_font_5x7_tr);
+    display.drawStr(116 - display.getStrWidth(batBuf), 10, batBuf);
+    
+    display.setFont(u8g2_font_6x10_tr);
     char buf[32];
     sprintf(buf, "T.Air: %.1f C", data.tempAire); display.drawStr(0, 24, buf);
     sprintf(buf, "Hum: %.1f %%", data.humAire);   display.drawStr(0, 36, buf);
@@ -211,6 +235,49 @@ void drawRTC() {
     display.drawStr(0, 63, "Serial: SET_TIME");
 }
 
+void drawBattery(const MeteorDataPacket& data) {
+    display.setFont(u8g2_font_6x10_tr);
+    display.drawStr(0, 10, "6. BATERIA");
+    
+    // Large battery icon (centered, 40x20 pixels)
+    int bx = 44, by = 18;
+    display.drawFrame(bx, by, 36, 16);        // Body
+    display.drawBox(bx + 36, by + 4, 4, 8);   // Tip
+    
+    // Fill based on percentage
+    int fillWidth = (data.batPercent * 32) / 100;
+    if (fillWidth > 0) {
+        display.drawBox(bx + 2, by + 2, fillWidth, 12);
+    }
+    
+    // Percentage (large, centered)
+    char buf[16];
+    display.setFont(u8g2_font_ncenB14_tr);
+    sprintf(buf, "%d%%", data.batPercent);
+    int w = display.getStrWidth(buf);
+    display.drawStr(64 - (w/2), 52, buf);
+    
+    // Voltage (left side)
+    display.setFont(u8g2_font_6x10_tr);
+    sprintf(buf, "%.2fV", data.vBat);
+    display.drawStr(0, 52, buf);
+    
+    // Status text (right side)
+    const char* status;
+    if (data.batPercent >= 80) status = "Excelente";
+    else if (data.batPercent >= 50) status = "Buena";
+    else if (data.batPercent >= 20) status = "Baja";
+    else status = "CRITICA!";
+    
+    w = display.getStrWidth(status);
+    display.drawStr(128 - w, 52, status);
+    
+    // Range info
+    display.setFont(u8g2_font_5x7_tr);
+    display.drawStr(0, 63, "Min:3.0V");
+    display.drawStr(85, 63, "Max:4.2V");
+}
+
 void drawPopup(const char* title, const char* opts[], int count, int sel) {
     display.setDrawColor(0); display.drawBox(10, 10, 108, 54);
     display.setDrawColor(1); display.drawFrame(10, 10, 108, 54);
@@ -220,6 +287,47 @@ void drawPopup(const char* title, const char* opts[], int count, int sel) {
     display.setFont(u8g2_font_ncenB08_tr);
     int w = display.getStrWidth(buf); display.drawStr(64 - (w/2), 45, buf);
     display.setFont(u8g2_font_5x7_tr); display.drawStr(20, 58, "Largo: Confirmar");
+}
+
+void drawFirmware() {
+    display.setFont(u8g2_font_6x10_tr);
+    display.drawStr(0, 10, "7. FIRMWARE");
+    
+    char buf[32];
+    
+    // Current version
+    display.setFont(u8g2_font_ncenB10_tr);
+    sprintf(buf, "v%s", FW_VERSION);
+    int w = display.getStrWidth(buf);
+    display.drawStr(64 - (w/2), 28, buf);
+    
+    display.setFont(u8g2_font_6x10_tr);
+    
+    // Update status
+    if (otaInProgress) {
+        sprintf(buf, "Actualizando: %d%%", otaProgress);
+        display.drawStr(0, 42, buf);
+        // Progress bar
+        display.drawFrame(0, 46, 128, 8);
+        display.drawBox(1, 47, (otaProgress * 126) / 100, 6);
+    } else if (otaUpdateAvailable) {
+        sprintf(buf, "Disponible: v%s", otaNewVersion.c_str());
+        display.drawStr(0, 42, buf);
+    } else {
+        display.drawStr(0, 42, "Estado: Actualizado");
+    }
+    
+    // Last check
+    sprintf(buf, "Ult.verif: %s", otaGetLastCheckStr().c_str());
+    display.drawStr(0, 54, buf);
+    
+    // Help text
+    display.setFont(u8g2_font_5x7_tr);
+    if (otaUpdateAvailable && !otaInProgress) {
+        display.drawStr(0, 63, "Largo: Actualizar");
+    } else if (!otaInProgress) {
+        display.drawStr(0, 63, "Largo: Buscar");
+    }
 }
 
 void renderScreen(const MeteorDataPacket& data, unsigned long lastSendTime, unsigned long sendIntervalMs) {
@@ -241,6 +349,8 @@ void renderScreen(const MeteorDataPacket& data, unsigned long lastSendTime, unsi
         case 2: drawSDStatus(); break;
         case 3: drawConfig(); break;
         case 4: drawRTC(); break;
+        case 5: drawBattery(data); break;
+        case 6: drawFirmware(); break;
     }
     
     // Progress bar (time until next send)

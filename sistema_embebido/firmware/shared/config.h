@@ -40,6 +40,8 @@ struct MeteorDataPacket {
     uint32_t rawSuelo;
     unsigned long packetId;
     uint32_t interval; // Sync TX interval state
+    float vBat;        // Battery voltage (V)
+    uint8_t batPercent; // Battery percentage (0-100)
 };
 
 // --- Estructura del Paquete de Control Unificado (RX -> TX) ---
