@@ -4,7 +4,7 @@
 
 #include "rtc.h"
 #include <Wire.h>
-#include <PCF8563.h>
+#include <pcf8563.h>
 
 // RTC instance
 static PCF8563_Class rtc;

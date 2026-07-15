@@ -42,8 +42,8 @@ try {
 
     // Insert some sample data for demo
     const sampleData = db.prepare(`
-        INSERT INTO readings (station_id, packet_id, temp_air, hum_air, temp_soil, vwc_soil, rssi, snr)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO readings (station_id, packet_id, temp_air, hum_air, temp_soil, vwc_soil, ec_soil, rssi, snr)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     // Generate 24 hours of sample data
@@ -53,6 +53,7 @@ try {
         const hum = 60 + Math.cos(i / 6) * 20 + (Math.random() - 0.5) * 5;
         const tempSoil = 18 + Math.sin(i / 8) * 3 + (Math.random() - 0.5);
         const vwc = 35 + Math.cos(i / 12) * 15 + (Math.random() - 0.5) * 3;
+        const ec = 200 + Math.sin(i / 10) * 80 + (Math.random() - 0.5) * 20;
 
         sampleData.run(
             demoId,
@@ -61,6 +62,7 @@ try {
             hum.toFixed(1),
             tempSoil.toFixed(1),
             vwc.toFixed(1),
+            ec.toFixed(1),
             -90 + Math.random() * 20,
             5 + Math.random() * 5
         );

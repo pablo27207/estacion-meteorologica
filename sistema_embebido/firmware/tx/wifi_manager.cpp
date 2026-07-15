@@ -84,26 +84,35 @@ bool wifiInit() {
     }
 }
 
+// Shared sensor data handler (used by both STA and AP mode)
+static void handleDataRequest(AsyncWebServerRequest *request) {
+    extern MeteorDataPacket currentData;
+
+    String json = "{";
+    json += "\"tempAire\":"  + String(currentData.tempAire, 1)  + ",";
+    json += "\"humAire\":"   + String(currentData.humAire, 1)   + ",";
+    json += "\"tempSuelo\":" + String(currentData.tempSuelo, 1) + ",";
+    json += "\"vwcSuelo\":"  + String(currentData.vwcSuelo, 1)  + ",";
+    json += "\"ecSuelo\":"   + String(currentData.ecSuelo, 0)   + ",";
+    json += "\"par\":"       + String(currentData.par, 0)       + ",";
+    json += "\"parUV\":"     + String(parSensorUV, 1)           + ",";
+    json += "\"vBat\":"      + String(currentData.vBat, 2)      + ",";
+    json += "\"batPct\":"    + String(currentData.batPercent)   + ",";
+    json += "\"wifiRSSI\":"  + String(WiFi.RSSI())              + ",";
+    json += "\"serverOk\":"  + String(lastServerOk ? "true" : "false");
+    json += "}";
+    request->send(200, "application/json", json);
+}
+
 void webServerInit() {
     if (wifiConnected) {
         // --- STA MODE (Status page) ---
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
             request->send_P(200, "text/html", index_html);
         });
-        
-        // Current sensor data
+
         server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
-            extern MeteorDataPacket currentData;
-            
-            String json = "{";
-            json += "\"tempAire\":" + String(currentData.tempAire) + ",";
-            json += "\"humAire\":" + String(currentData.humAire) + ",";
-            json += "\"tempSuelo\":" + String(currentData.tempSuelo) + ",";
-            json += "\"vwcSuelo\":" + String(currentData.vwcSuelo) + ",";
-            json += "\"wifiRSSI\":" + String(WiFi.RSSI()) + ",";
-            json += "\"serverOk\":" + String(lastServerOk ? "true" : "false");
-            json += "}";
-            request->send(200, "application/json", json);
+            handleDataRequest(request);
         });
         
         // Get server config
@@ -130,9 +139,13 @@ void webServerInit() {
             }
         });
     } else {
-        // --- AP MODE (WiFi Configuration) ---
+        // --- AP MODE (WiFi Configuration + sensor debug) ---
         server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
             request->send_P(200, "text/html", setup_wifi_html);
+        });
+
+        server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
+            handleDataRequest(request);
         });
         
         server.on("/start_scan", HTTP_GET, [](AsyncWebServerRequest *request) {

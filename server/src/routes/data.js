@@ -39,7 +39,7 @@ router.post('/ingest', (req, res) => {
         // Extraer datos del body
         const {
             packetId,
-            tempAire, humAire, tempSuelo, vwcSuelo,
+            tempAire, humAire, tempSuelo, vwcSuelo, ecSuelo,
             pressure, par, solarRadiation, precipitation,
             rssi, snr, freqError, batteryVoltage
         } = req.body;
@@ -52,6 +52,7 @@ router.post('/ingest', (req, res) => {
             humAire ?? null,
             tempSuelo ?? null,
             vwcSuelo ?? null,
+            ecSuelo ?? null,
             pressure ?? null,
             par ?? null,
             solarRadiation ?? null,
@@ -223,7 +224,7 @@ router.get('/:stationId/export', (req, res) => {
         // Generar CSV
         const headers = [
             'timestamp', 'packet_id', 'temp_air', 'hum_air',
-            'temp_soil', 'vwc_soil', 'pressure', 'par',
+            'temp_soil', 'vwc_soil', 'ec_soil', 'pressure', 'par',
             'solar_radiation', 'precipitation', 'rssi', 'snr'
         ];
 

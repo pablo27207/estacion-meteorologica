@@ -24,7 +24,6 @@
 #include "wifi_manager.h"
 #include "server_client.h"
 #include "battery.h"
-#include "ota.h"
 
 // Current sensor readings
 MeteorDataPacket currentData;
@@ -39,8 +38,6 @@ unsigned long sendInterval = 60000;  // 1 minute default
 // Packet counter
 unsigned long packetCounter = 0;
 
-// OTA check timing
-unsigned long lastOtaCheck = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -81,9 +78,6 @@ void setup() {
     // 9. Initialize button
     buttonInit();
     lastInteraction = millis();
-    
-    // 10. Initialize OTA
-    otaInit();
     
     Serial.println("TX Ready. Commands: SET_TIME,YYYY,MM,DD,HH,MM,SS | GET_TIME");
     if (wifiOk) {
@@ -186,9 +180,4 @@ void loop() {
     // 6. Render Display
     renderScreen(currentData, lastSendTime, sendInterval);
     
-    // 7. OTA Check (every hour)
-    if (wifiConnected && (millis() - lastOtaCheck > OTA_CHECK_INTERVAL || lastOtaCheck == 0)) {
-        otaCheckForUpdate();
-        lastOtaCheck = millis();
-    }
 }

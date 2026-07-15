@@ -58,12 +58,14 @@ bool sendPacketToServer(const MeteorDataPacket& data, const String& timestamp) {
     }
 
     // Build JSON payload
-    StaticJsonDocument<512> doc;
+    JsonDocument doc;
     doc["packetId"] = data.packetId;
     doc["tempAire"] = data.tempAire;
     doc["humAire"] = data.humAire;
     doc["tempSuelo"] = data.tempSuelo;
     doc["vwcSuelo"] = data.vwcSuelo;
+    doc["ecSuelo"] = data.ecSuelo;
+    doc["par"] = data.par;
     doc["vBat"] = data.vBat;
     doc["batPercent"] = data.batPercent;
     doc["timestamp"] = timestamp;

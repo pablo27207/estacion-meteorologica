@@ -47,6 +47,7 @@ db.exec(`
         hum_air REAL,
         temp_soil REAL,
         vwc_soil REAL,
+        ec_soil REAL,
         pressure REAL,
         par REAL,
         solar_radiation REAL,
@@ -96,6 +97,13 @@ db.exec(`
         ON users(email);
 `);
 
+// Migration: add ec_soil column to existing databases
+try {
+    db.exec(`ALTER TABLE readings ADD COLUMN ec_soil REAL`);
+} catch (e) {
+    // Column already exists, nothing to do
+}
+
 // Funciones de estaciones
 const stationQueries = {
     getAll: db.prepare(`
@@ -137,10 +145,10 @@ const stationQueries = {
 const readingQueries = {
     insert: db.prepare(`
         INSERT INTO readings (
-            station_id, packet_id, temp_air, hum_air, temp_soil, vwc_soil,
+            station_id, packet_id, temp_air, hum_air, temp_soil, vwc_soil, ec_soil,
             pressure, par, solar_radiation, precipitation,
             rssi, snr, freq_error, battery_voltage
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
 
     getLatest: db.prepare(`
@@ -172,6 +180,7 @@ const readingQueries = {
             AVG(hum_air) as avg_hum_air,
             AVG(temp_soil) as avg_temp_soil,
             AVG(vwc_soil) as avg_vwc_soil,
+            AVG(ec_soil) as avg_ec_soil,
             SUM(precipitation) as total_precipitation
         FROM readings
         WHERE station_id = ? AND timestamp >= datetime('now', ?)

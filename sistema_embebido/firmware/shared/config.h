@@ -35,9 +35,10 @@
 struct MeteorDataPacket {
     float tempAire;
     float humAire;
-    float tempSuelo;
-    float vwcSuelo;
-    uint32_t rawSuelo;
+    float tempSuelo;   // TEROS 12: soil temperature (°C)
+    float vwcSuelo;    // TEROS 12: volumetric water content (%)
+    float ecSuelo;     // TEROS 12: electrical conductivity (µS/cm)
+    float par;         // PAR radiometer: photosynthetically active radiation (µmol/m²s)
     unsigned long packetId;
     uint32_t interval; // Sync TX interval state
     float vBat;        // Battery voltage (V)

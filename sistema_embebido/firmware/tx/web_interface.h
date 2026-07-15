@@ -46,6 +46,18 @@ const char index_html[] PROGMEM = R"rawliteral(
                     <div class="text-xs text-slate-500">VWC Suelo</div>
                     <div class="text-xl font-bold" id="vwcSuelo">--</div>
                 </div>
+                <div class="bg-slate-50 p-3 rounded">
+                    <div class="text-xs text-slate-500">Cond. Suelo</div>
+                    <div class="text-xl font-bold" id="ecSuelo">--</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded">
+                    <div class="text-xs text-slate-500">PAR</div>
+                    <div class="text-xl font-bold" id="par">--</div>
+                </div>
+                <div class="bg-slate-50 p-3 rounded">
+                    <div class="text-xs text-slate-500">Batería</div>
+                    <div class="text-xl font-bold" id="bateria">--</div>
+                </div>
             </div>
         </div>
 
@@ -76,11 +88,14 @@ const char index_html[] PROGMEM = R"rawliteral(
     <script>
         function loadData() {
             fetch('/data').then(r => r.json()).then(d => {
-                document.getElementById('tempAire').innerText = d.tempAire.toFixed(1) + '°C';
-                document.getElementById('humAire').innerText = d.humAire.toFixed(1) + '%';
-                document.getElementById('tempSuelo').innerText = d.tempSuelo.toFixed(1) + '°C';
-                document.getElementById('vwcSuelo').innerText = d.vwcSuelo.toFixed(1) + '%';
-                document.getElementById('status').innerText = 'WiFi: ' + d.wifiRSSI + ' dBm | Server: ' + (d.serverOk ? 'OK' : 'Error');
+                document.getElementById('tempAire').innerText  = d.tempAire.toFixed(1) + ' °C';
+                document.getElementById('humAire').innerText   = d.humAire.toFixed(1) + ' %';
+                document.getElementById('tempSuelo').innerText = d.tempSuelo.toFixed(1) + ' °C';
+                document.getElementById('vwcSuelo').innerText  = d.vwcSuelo.toFixed(1) + ' %';
+                document.getElementById('ecSuelo').innerText   = d.ecSuelo.toFixed(0) + ' µS/cm';
+                document.getElementById('par').innerText       = d.par.toFixed(0) + ' µmol/m²s (' + d.parUV.toFixed(0) + ' µV)';
+                document.getElementById('bateria').innerText   = d.vBat.toFixed(2) + ' V (' + d.batPct + '%)';
+                document.getElementById('status').innerText    = 'WiFi: ' + d.wifiRSSI + ' dBm | Server: ' + (d.serverOk ? 'OK' : 'Error');
             }).catch(e => {
                 document.getElementById('status').innerText = 'Error de conexión';
             });
@@ -132,8 +147,35 @@ const char setup_wifi_html[] PROGMEM = R"rawliteral(
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-slate-100 flex items-center justify-center h-screen px-4">
-    <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+<style>
+  .dbg{font-family:monospace;background:#0f172a;color:#e2e8f0;border-radius:12px;padding:16px;margin-bottom:16px}
+  .dbg h3{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;margin:0 0 12px}
+  .dbg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .dbg-card{background:#1e293b;border-radius:8px;padding:10px;text-align:center}
+  .dbg-label{font-size:10px;color:#64748b;margin-bottom:4px}
+  .dbg-val{font-size:16px;font-weight:700;color:#38bdf8}
+  .dbg-footer{margin-top:10px;font-size:11px;color:#475569;text-align:right}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22c55e;margin-right:4px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+<body class="bg-slate-100 flex items-center justify-center min-h-screen px-4 py-8">
+    <div class="max-w-md w-full">
+
+    <!-- Debug: sensor readings -->
+    <div class="dbg">
+      <h3><span class="dot"></span>Lecturas en tiempo real</h3>
+      <div class="dbg-grid">
+        <div class="dbg-card"><div class="dbg-label">Temp Aire</div><div class="dbg-val" id="d_tA">--</div></div>
+        <div class="dbg-card"><div class="dbg-label">Hum Aire</div><div class="dbg-val" id="d_hA">--</div></div>
+        <div class="dbg-card"><div class="dbg-label">PAR</div><div class="dbg-val" id="d_par">--</div></div>
+        <div class="dbg-card"><div class="dbg-label">Temp Suelo</div><div class="dbg-val" id="d_tS">--</div></div>
+        <div class="dbg-card"><div class="dbg-label">VWC</div><div class="dbg-val" id="d_vwc">--</div></div>
+        <div class="dbg-card"><div class="dbg-label">CE Suelo</div><div class="dbg-val" id="d_ec">--</div></div>
+      </div>
+      <div class="dbg-footer" id="d_bat">Batería: --</div>
+    </div>
+
+    <div class="bg-white p-8 rounded-xl shadow-lg">
         <div class="text-center mb-6">
             <i class="fas fa-wifi text-4xl text-blue-600 mb-2"></i>
             <h1 class="text-2xl font-bold text-slate-700">Configurar WiFi</h1>
@@ -160,9 +202,24 @@ const char setup_wifi_html[] PROGMEM = R"rawliteral(
             </button>
         </div>
         <div id="status" class="mt-4 text-center text-sm font-mono h-5"></div>
-    </div>
+    </div><!-- /wifi card -->
+    </div><!-- /container -->
 
     <script>
+        function pollSensors() {
+            fetch('/data').then(r => r.json()).then(d => {
+                document.getElementById('d_tA').innerText  = d.tempAire.toFixed(1) + ' °C';
+                document.getElementById('d_hA').innerText  = d.humAire.toFixed(1) + ' %';
+                document.getElementById('d_tS').innerText  = d.tempSuelo.toFixed(1) + ' °C';
+                document.getElementById('d_vwc').innerText = d.vwcSuelo.toFixed(1) + ' %';
+                document.getElementById('d_ec').innerText  = d.ecSuelo.toFixed(0) + ' µS';
+                document.getElementById('d_par').innerText = d.par.toFixed(0) + '(' + d.parUV.toFixed(0) + 'µV)';
+                document.getElementById('d_bat').innerText = 'Batería: ' + d.vBat.toFixed(2) + ' V (' + d.batPct + '%)';
+            }).catch(() => {});
+        }
+        pollSensors();
+        setInterval(pollSensors, 3000);
+
         function scanWifi() {
             const list = document.getElementById('scanResults');
             list.innerHTML = '<div class="p-2 text-center text-slate-500">Escaneando...</div>';

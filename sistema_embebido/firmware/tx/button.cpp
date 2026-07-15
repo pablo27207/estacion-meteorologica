@@ -9,7 +9,6 @@
 #include "button.h"
 #include "display.h"
 #include "wifi_manager.h"
-#include "ota.h"
 
 // Button State
 bool btnPressed = false;
@@ -49,13 +48,6 @@ void handleButton() {
                         // Config Screen -> Enter edit mode
                         uiState = UI_EDIT;
                         editCursor = 0;
-                    } else if (currentScreen == 6) {
-                        // Firmware Screen -> Check/Perform OTA
-                        if (otaUpdateAvailable) {
-                            otaPerformUpdate();  // Will reboot on success
-                        } else {
-                            otaCheckForUpdate();
-                        }
                     }
                 } else if (uiState == UI_EDIT) {
                     if (editCursor == 3) { 
@@ -105,7 +97,7 @@ void handleButton() {
                 // Short Press
                 if (uiState == UI_VIEW) {
                     currentScreen++;
-                    if (currentScreen > 6) currentScreen = 0;
+                    if (currentScreen > 5) currentScreen = 0;
                 } else if (uiState == UI_EDIT) {
                     editCursor++;
                     if (editCursor > 3) editCursor = 0;
